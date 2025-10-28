@@ -1,0 +1,78 @@
+{
+  "name": "ui-components",
+  "version": "1.0.0",
+  "description": "Laravel + React + Inertia.js UI Components Library with Navy Theme",
+  "type": "module",
+  "private": true,
+  "exports": {
+    "./styles": "./src/index.css",
+    "./components/*": "./src/components/*",
+    "./pages/*": "./src/pages/*",
+    "./types/*": "./src/types/*",
+    "./hooks/*": "./src/hooks/*"
+  },
+  "dependencies": {
+    "@headlessui/react": "^2.2.8",
+    "@tailwindcss/forms": "^0.5.10",
+    "@testing-library/jest-dom": "^5.16.4",
+    "@testing-library/react": "^13.3.0",
+    "@testing-library/user-event": "^13.5.0",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.8.1",
+    "react-scripts": "5.0.1",
+    "tailwindcss": "^3.4.17",
+    "web-vitals": "^2.1.4",
+    "yup": "^1.7.1"
+  },
+  "scripts": {
+    "start": "vite",
+    "build": "vite build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "serve": "npx serve -s build --listen 3000 --single",
+    "dev": "vite",
+    "preview": "vite preview",
+    "test:e2e": "playwright test"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "keywords": [
+    "react",
+    "ui-components",
+    "design-system",
+    "laravel",
+    "inertia",
+    "navy-theme"
+  ],
+  "author": "chikau",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^24.7.0",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.1",
+    "@types/react-router-dom": "^5.3.3",
+    "@vitejs/plugin-react": "^4.7.0",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.20"
+  }
+}

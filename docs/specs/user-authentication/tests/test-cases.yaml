@@ -1,0 +1,374 @@
+# テストケース定義（機械可読形式）
+# このファイルから PHPUnit テストを自動生成します
+
+spec_name: user-authentication
+version: "1.0"
+test_ratio:
+  normal: 30-40%  # 正常系
+  error: 60-70%   # 異常系
+
+# ===================================================================
+# 1. ユーザー登録 (RegisterUser UseCase)
+# ===================================================================
+register_user:
+  use_case: RegisterUser
+  module: User
+
+  parameters:
+    - name: name
+      type: string
+      description: ユーザー名
+    - name: email
+      type: string
+      description: メールアドレス
+    - name: password
+      type: string
+      description: パスワード
+    - name: password_confirmation
+      type: string
+      description: パスワード確認
+    - name: terms_agreed
+      type: boolean
+      description: 利用規約同意
+
+  states:
+    name:
+      valid_short: { value: "山田", length: 2, description: "最小値" }
+      valid_normal: { value: "山田太郎12345", length: 10, description: "通常値" }
+      valid_long: { length: 255, description: "最大値（255文字のランダム文字列）" }
+      too_long: { length: 256, description: "長さ超過（256文字のランダム文字列）" }
+      empty: { value: "", description: "空文字" }
+      "null": { value: null, description: "null値" }
+      with_special_chars: { value: "山田@太郎!", description: "特殊文字含む" }
+
+    email:
+      unique_valid: { value: "test@example.com", unique: true, description: "未使用の有効なメール" }
+      duplicate: { value: "existing@example.com", unique: false, description: "既に登録済み" }
+      invalid_no_at: { value: "invalidemail.com", description: "@なし" }
+      invalid_no_domain: { value: "test@", description: "ドメインなし" }
+      invalid_no_local: { value: "@example.com", description: "ローカル部なし" }
+      with_space: { value: "test @example.com", description: "スペース含む" }
+      empty: { value: "", description: "空文字" }
+      "null": { value: null, description: "null値" }
+
+    password:
+      valid_min: { value: "pass1234", length: 8, description: "最小値" }
+      valid_normal: { value: "password1234", length: 12, description: "通常値" }
+      valid_max: { length: 255, description: "最大値（255文字のランダム文字列）" }
+      too_short: { value: "pass123", length: 7, description: "長さ不足" }
+      empty: { value: "", description: "空文字" }
+      "null": { value: null, description: "null値" }
+      with_special_only: { value: "!@#$%^&*()", length: 10, description: "特殊文字のみ" }
+      with_whitespace_only: { value: "        ", length: 8, description: "空白のみ" }
+
+    password_confirmation:
+      match: { description: "passwordと一致" }
+      mismatch: { value: "different123", description: "passwordと不一致" }
+      empty: { value: "", description: "空文字" }
+      "null": { value: null, description: "null値" }
+
+    terms_agreed:
+      "true": { value: true, description: "同意済み" }
+      "false": { value: false, description: "未同意" }
+      "null": { value: null, description: "null値" }
+
+  unit_tests:
+    - id: REG-U-001
+      type: normal
+      name: valid_normal
+      email: unique_valid
+      password: valid_normal
+      password_confirmation: match
+      terms_agreed: true
+      expected: success
+      assertion: "ユーザー作成、role=user"
+
+    - id: REG-U-002
+      type: error
+      name: valid_normal
+      email: duplicate
+      password: valid_normal
+      password_confirmation: match
+      terms_agreed: true
+      expected: failure
+      error_field: email
+      error_message: "このメールアドレスは既に使用されています。"
+
+    - id: REG-U-003
+      type: error
+      name: valid_normal
+      email: invalid_no_at
+      password: valid_normal
+      password_confirmation: match
+      terms_agreed: true
+      expected: failure
+      error_field: email
+      error_message: "有効なメールアドレスを入力してください。"
+
+    - id: REG-U-004
+      type: error
+      name: valid_normal
+      email: unique_valid
+      password: too_short
+      password_confirmation: match
+      terms_agreed: true
+      expected: failure
+      error_field: password
+      error_message: "パスワードは8文字以上で入力してください。"
+
+    - id: REG-U-005
+      type: error
+      name: valid_normal
+      email: unique_valid
+      password: valid_normal
+      password_confirmation: mismatch
+      terms_agreed: true
+      expected: failure
+      error_field: password
+      error_message: "パスワードが一致しません。"
+
+    - id: REG-U-006
+      type: error
+      name: empty
+      email: unique_valid
+      password: valid_normal
+      password_confirmation: match
+      terms_agreed: true
+      expected: failure
+      error_field: name
+      error_message: "名前は必須です。"
+
+    - id: REG-U-007
+      type: error
+      name: valid_normal
+      email: empty
+      password: valid_normal
+      password_confirmation: match
+      terms_agreed: true
+      expected: failure
+      error_field: email
+      error_message: "メールアドレスは必須です。"
+
+    - id: REG-U-008
+      type: error
+      name: valid_normal
+      email: unique_valid
+      password: empty
+      password_confirmation: empty
+      terms_agreed: true
+      expected: failure
+      error_field: password
+      error_message: "パスワードは必須です。"
+
+    - id: REG-U-009
+      type: error
+      name: too_long
+      email: unique_valid
+      password: valid_normal
+      password_confirmation: match
+      terms_agreed: true
+      expected: failure
+      error_field: name
+      error_message: "名前は255文字以内で入力してください。"
+
+    - id: REG-U-010
+      type: error
+      name: valid_normal
+      email: unique_valid
+      password: valid_normal
+      password_confirmation: match
+      terms_agreed: false
+      expected: failure
+      error_field: terms_agreed
+      error_message: "利用規約に同意してください。"
+
+  e2e_tests:
+    - id: REG-E2E-001
+      type: normal
+      scenario: "有効なデータで登録フォーム送信"
+      steps:
+        - navigate: "/register"
+        - input: { name: "山田太郎", email: "test@example.com", password: "password123", password_confirmation: "password123", terms_agreed: true }
+        - click: "button[type='submit']"
+      expected:
+        - redirect: "/dashboard"
+        - display: "山田太郎"
+        - role: "user"
+
+    - id: REG-E2E-002
+      type: error
+      scenario: "既存メールアドレスで登録"
+      steps:
+        - navigate: "/register"
+        - input: { name: "山田太郎", email: "existing@example.com", password: "password123", password_confirmation: "password123", terms_agreed: true }
+        - click: "button[type='submit']"
+      expected:
+        - error_message: "このメールアドレスは既に使用されています。"
+        - error_field: "email"
+
+    - id: REG-E2E-003
+      type: error
+      scenario: "パスワード確認不一致で登録"
+      steps:
+        - navigate: "/register"
+        - input: { name: "山田太郎", email: "test@example.com", password: "password123", password_confirmation: "different123", terms_agreed: true }
+        - click: "button[type='submit']"
+      expected:
+        - error_message: "パスワードが一致しません。"
+        - error_field: "password"
+
+# ===================================================================
+# 2. ログイン (LoginUser UseCase)
+# ===================================================================
+login_user:
+  use_case: LoginUser
+  module: User
+
+  parameters:
+    - name: email
+      type: string
+    - name: password
+      type: string
+    - name: remember
+      type: boolean
+
+  states:
+    email:
+      exists_valid: { value: "test@example.com", exists: true, description: "DBに存在、形式正しい" }
+      not_exists_valid_format: { value: "notexist@example.com", exists: false, description: "DBに存在しない" }
+      invalid_format: { value: "invalidemail", description: "不正な形式" }
+      empty: { value: "", description: "空文字" }
+
+    password:
+      correct: { value: "password123", description: "正しいパスワード" }
+      incorrect: { value: "wrongpassword", description: "誤ったパスワード" }
+      empty: { value: "", description: "空文字" }
+
+    remember:
+      "true": { value: true, description: "Remember Me有効" }
+      "false": { value: false, description: "Remember Me無効" }
+
+  unit_tests:
+    - id: LOG-U-001
+      type: normal
+      email: exists_valid
+      password: correct
+      remember: false
+      expected: success
+      assertion: "ログイン成功、セッション作成"
+
+    - id: LOG-U-002
+      type: error
+      email: exists_valid
+      password: incorrect
+      remember: false
+      expected: failure
+      error_message: "メールアドレスまたはパスワードが正しくありません。"
+
+    - id: LOG-U-003
+      type: error
+      email: not_exists_valid_format
+      password: correct
+      remember: false
+      expected: failure
+      error_message: "メールアドレスまたはパスワードが正しくありません。"
+
+    - id: LOG-U-004
+      type: error
+      email: empty
+      password: correct
+      remember: false
+      expected: failure
+      error_field: email
+      error_message: "メールアドレスは必須です。"
+
+    - id: LOG-U-005
+      type: error
+      email: exists_valid
+      password: empty
+      remember: false
+      expected: failure
+      error_field: password
+      error_message: "パスワードは必須です。"
+
+    - id: LOG-U-006
+      type: normal
+      email: exists_valid
+      password: correct
+      remember: true
+      expected: success
+      assertion: "ログイン成功、Remember Cookie作成"
+
+  e2e_tests:
+    - id: LOG-E2E-001
+      type: normal
+      scenario: "有効な認証情報でログイン"
+      steps:
+        - navigate: "/login"
+        - input: { email: "test@example.com", password: "password123" }
+        - click: "button[type='submit']"
+      expected:
+        - redirect: "/dashboard"
+        - display: "ログイン成功"
+
+    - id: LOG-E2E-002
+      type: error
+      scenario: "誤ったパスワードでログイン"
+      steps:
+        - navigate: "/login"
+        - input: { email: "test@example.com", password: "wrongpassword" }
+        - click: "button[type='submit']"
+      expected:
+        - error_message: "メールアドレスまたはパスワードが正しくありません。"
+
+# ===================================================================
+# 3. パスワードリセット (ResetPassword UseCase)
+# ===================================================================
+reset_password:
+  use_case: ResetPassword
+  module: User
+
+  parameters:
+    - name: token
+      type: string
+    - name: password
+      type: string
+    - name: password_confirmation
+      type: string
+
+  unit_tests:
+    - id: RESET-U-001
+      type: normal
+      token: valid
+      password: valid_normal
+      password_confirmation: match
+      expected: success
+      assertion: "パスワード更新成功"
+
+    - id: RESET-U-002
+      type: error
+      token: invalid
+      password: valid_normal
+      password_confirmation: match
+      expected: failure
+      error_message: "無効なトークンです。"
+
+    - id: RESET-U-003
+      type: error
+      token: expired
+      password: valid_normal
+      password_confirmation: match
+      expected: failure
+      error_message: "トークンの有効期限が切れています。"
+
+  e2e_tests:
+    - id: RESET-E2E-001
+      type: normal
+      scenario: "有効なトークンでパスワードリセット"
+      steps:
+        - navigate: "/reset-password/{valid_token}"
+        - input: { password: "newpassword123", password_confirmation: "newpassword123" }
+        - click: "button[type='submit']"
+      expected:
+        - redirect: "/login"
+        - success_message: "パスワードをリセットしました。"

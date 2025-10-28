@@ -1,0 +1,29 @@
+/**
+ * ui-components Library - CSS Entry Point
+ *
+ * このファイルはui-componentsライブラリのCSSエントリーポイントです。
+ * Laravel + Inertia.jsプロジェクトでは、このファイル1つをimportするだけで
+ * すべてのスタイルが適用されます。
+ *
+ * @example Laravel + Inertia.js統合
+ * ```tsx
+ * // resources/js/app.tsx
+ * import '@/.spec-workflow/ui-components/src/index.css';
+ * ```
+ */
+
+/* グローバルスタイル（CSS変数、リセット等） */
+@import './styles/global.css';
+
+/* コンポーネントスタイル */
+@import './styles/components/Alert.css';
+@import './styles/components/Button.css';
+@import './styles/components/FlashMessage.css';
+@import './styles/components/InputField.css';
+@import './styles/components/PrimaryButton.css';
+
+/* ページテンプレートスタイル */
+@import './styles/pages/TemplatePage.css';
+@import './styles/pages/templates/DetailPage.css';
+@import './styles/pages/templates/ListPage.css';
+@import './styles/pages/templates/StatisticsPage.css';
