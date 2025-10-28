@@ -91,10 +91,10 @@ ls docs/test-reports/screenshots/user-authentication/frontend-*.png | wc -l
 # 期待結果: エラー0件
 
 # 実装ファイル確認
-ls -la app/Domain/User/
-ls -la app/Application/User/
-ls -la app/Infrastructure/User/
-ls -la app/Presentation/Http/Controllers/Auth/
+ls -la app/Modules/User/Domain/
+ls -la app/Modules/User/Application/
+ls -la app/Modules/User/Infrastructure/
+ls -la app/Modules/User/Presentation/Controllers/
 ```
 
 ### ステップ4完了確認

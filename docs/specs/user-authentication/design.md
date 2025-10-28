@@ -67,6 +67,15 @@ Clean Architecture（4層構造）を採用。詳細は `tech.md` を参照。
   → ログイン画面(/login)
 ```
 
+**確認画面からの戻り動線**:
+- 確認画面に「戻る」ボタンを配置
+- 確認画面には登録画面で入力された内容を表示（名前、メールアドレス、電話番号）
+  - パスワードは表示しない（ハッシュ化されているため）
+- 戻るボタンクリック時:
+  - セッションに保存された入力データ（name, email, phone）を保持したまま新規登録画面に遷移
+  - 新規登録画面は `old` プロパティを使用してフォームに自動入力（name, email, phone）
+  - パスワード欄は空欄で表示（再入力必須）
+
 **ログイン・ログアウトフロー**:
 ```
 ログイン画面(/login) → ログイン成功 → ダッシュボード(/dashboard)
@@ -103,12 +112,15 @@ Clean Architecture（4層構造）を採用。詳細は `tech.md` を参照。
 - **AuthController**: 認証関連のHTTPリクエスト処理
   - `showSignup()`: 新規登録画面表示
     - Inertia props: `old` (セッションからの復元データ: name, email, phone)
+    - 確認画面から戻った場合、セッションに保存されたデータでフォームを自動入力
   - `signup(RegisterRequest)`: 新規登録処理（確認画面へ遷移）
-    - セッション保存データ: `name`, `email`, `phone`, `password`
+    - セッション保存データ: `name`, `email`, `phone`, `password`（passwordはハッシュ化して保存）
   - `showSignupConfirm()`: 登録内容確認画面表示
-    - Inertia props: `signupName`, `signupEmail`, `signupPhone`（セッションから取得）
+    - Inertia props: `signupName`, `signupEmail`, `signupPhone`（セッションから取得、パスワードは含まない）
+    - 「戻る」ボタン配置（新規登録画面に遷移、入力データ保持）
   - `signupConfirm()`: 登録確定処理
     - セッションデータからユーザー作成、自動ログイン
+    - ユーザー作成成功後、登録用セッションデータ（name, email, phone, password）をクリア
   - `showSignupComplete()`: 登録完了画面表示
   - `showLogin()`: ログイン画面表示
   - `login(LoginRequest)`: ログイン処理
@@ -120,7 +132,7 @@ Clean Architecture（4層構造）を採用。詳細は `tech.md` を参照。
 
 ### テーブル一覧
 
-- **users**: ユーザー情報（id, name, email, phone, password, role, remember_token）
+- **users**: ユーザー情報（id, name, email, phone, password, role）
 - **failed_login_attempts**: ログイン失敗記録（id, ip_address, email, attempted_at）
 
 **usersテーブルフィールド詳細**:
@@ -130,7 +142,6 @@ Clean Architecture（4層構造）を採用。詳細は `tech.md` を参照。
 - `phone`: VARCHAR(20), NULLABLE（電話番号、任意項目）
 - `password`: VARCHAR(255), NOT NULL（ハッシュ化パスワード）
 - `role`: ENUM('user', 'admin'), DEFAULT 'user'（ユーザー権限）
-- `remember_token`: VARCHAR(100), NULLABLE（Remember Me機能用）
 - `created_at`: TIMESTAMP, NOT NULL
 - `updated_at`: TIMESTAMP, NOT NULL
 
@@ -146,8 +157,10 @@ Clean Architecture（4層構造）を採用。詳細は `tech.md` を参照。
 **バリデーション項目詳細**:
 - `name`: 必須、2文字以上、255文字以下
 - `email`: 必須、メール形式、255文字以下、重複禁止
-- `phone`: 任意、電話番号形式（0から始まる10-11桁）
-- `password`: 必須、8文字以上、英数字含む
+- `phone`: 任意、半角数字のみ、0から始まる10-11桁（ハイフンなし）
+  - **フロントエンド**: 入力時に全角数字→半角数字へ自動変換（onChange/onBlurイベント）
+  - **バックエンド**: 半角数字のみ許可（全角数字・ハイフンはバリデーションエラー）
+- `password`: 必須、8文字以上255文字以下、英字と数字を少なくとも1文字ずつ含む、記号使用可
 - `password_confirmation`: 必須、passwordと一致
 
 **エラーメッセージ詳細**: `dev-kit/docs/specs/user-authentication/tests/test-cases.yaml` を参照
@@ -160,9 +173,19 @@ Clean Architecture（4層構造）を採用。詳細は `tech.md` を参照。
 - Domain層: Email、HashedPassword値オブジェクトのバリデーション、Userエンティティのビジネスロジック
 - Application層: RegisterUser、LoginUser UseCaseのロジック
 - Infrastructure層: EloquentUserRepository、認証関連のデータベース連携
-- Presentation層: AuthController（6メソッド）、認証フロー全体
-- E2E: 3つの主要機能フロー
-  - ユーザー登録フロー（3ステップ）: 入力 → 確認 → 完了 → ログイン
+- Presentation層: AuthController（8メソッド）、認証フロー全体
+- **フロントエンドUI単体テスト（8件）**:
+  1. ログイン画面表示テスト（ページが空白でないこと）
+  2. 新規登録画面表示テスト（FormPageテンプレート使用確認）
+  3. 登録内容確認画面表示テスト（DetailPageテンプレート使用確認）
+  4. 登録完了画面表示テスト（MessagePageテンプレート使用確認）
+  5. フォーム入力テスト（キーボード入力が機能すること）
+  6. ボタンクリックテスト（送信ボタン、戻るボタン）
+  7. リアルタイムバリデーションテスト（useDynamicValidation動作確認）
+  8. SPレスポンシブレイアウトテスト（ハンバーガーメニュー等）
+- **E2E統合テスト（4つの主要機能フロー）**:
+  - ユーザー登録フロー（正常系）: 入力 → 確認 → 完了 → ログイン
+  - ユーザー登録フロー（戻る動線）: 入力 → 確認 → 戻る → 再入力 → 確認 → 完了
   - ログインフロー: ログイン → ダッシュボード
   - ログアウトフロー: ログアウト → ログイン画面
 
@@ -192,13 +215,13 @@ Clean Architecture（4層構造）を採用。詳細は `tech.md` を参照。
 
 **使用テンプレート**:
 
-| 画面 | URL | テンプレート |
-|-----|-----|-----------|
-| ログイン | `/login` | LoginPage |
-| 新規登録 | `/signup` | SignupPage |
-| 登録内容確認 | `/signup/confirm` | SignupConfirmPage |
-| 登録完了 | `/signup/complete` | SignupCompletePage |
-| ダッシュボード | `/dashboard` | DashboardPage |
-| 404エラー | - | Error404Page |
-| 500エラー | - | Error505Page |
+| 画面 | URL | テンプレート | 備考 |
+|-----|-----|-----------|------|
+| ログイン | `/login` | LoginPage | - |
+| 新規登録 | `/signup` | FormPage | バリデーション付きフォーム |
+| 登録内容確認 | `/signup/confirm` | DetailPage | 読み取り専用、「戻る」「登録」ボタン配置 |
+| 登録完了 | `/signup/complete` | MessagePage | 完了メッセージ表示 |
+| ダッシュボード | `/dashboard` | DashboardPage | - |
+| 404エラー | - | Error404Page | - |
+| 500エラー | - | Error500Page | - |
 
