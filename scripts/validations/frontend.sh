@@ -427,9 +427,230 @@ if [ -d "$TESTS_DIR" ]; then
 fi
 
 # ==========================================
-# Phase 7: バリデーションロジック検証
+# Phase 7: UIテンプレート厳密検証（Dashboard悪質ミス対策）
 # ==========================================
-echo "【Phase 7】バリデーションロジック検証"
+echo "【Phase 7】UIテンプレート厳密検証"
+echo "--------------------------------------------------"
+
+# 7-1: テンプレートインポート確認
+echo "7-1: テンプレートインポート確認"
+
+check_template_import() {
+    local page_file="$1"
+    local expected_template="$2"
+    local page_name="$(basename "$page_file" .tsx)"
+
+    if [ ! -f "$page_file" ]; then
+        return 0
+    fi
+
+    # インポート文をチェック
+    if ! grep -q "import.*$expected_template.*from.*ui-components" "$page_file"; then
+        echo "❌ CRITICAL ERROR: $page_name - $expected_template のインポートが見つかりません"
+        echo "   → カスタム実装の可能性があります"
+        echo "   参照: CLAUDE.md セクション2.2"
+        ERRORS=$((ERRORS + 1))
+        return 1
+    fi
+
+    # JSX内での使用をチェック
+    if ! grep -q "<$expected_template" "$page_file"; then
+        echo "❌ CRITICAL ERROR: $page_name - $expected_template が使用されていません"
+        echo "   → インポートだけして使用していない可能性があります"
+        echo "   参照: CLAUDE.md セクション2.2"
+        ERRORS=$((ERRORS + 1))
+        return 1
+    fi
+
+    return 0
+}
+
+# 各ページの検証
+check_template_import "$PAGES_DIR/Dashboard.tsx" "DashboardPageTemplate"
+check_template_import "$PAGES_DIR/Auth/LoginPage.tsx" "LoginPageTemplate"
+check_template_import "$PAGES_DIR/Auth/SignupPage.tsx" "SignupPageTemplate"
+check_template_import "$PAGES_DIR/Auth/SignupConfirmPage.tsx" "SignupConfirmPageTemplate"
+check_template_import "$PAGES_DIR/Auth/SignupCompletePage.tsx" "SignupCompletePageTemplate"
+
+# 7-2: 禁止パターン検出（インラインスタイル）
+echo ""
+echo "7-2: 禁止パターン検出"
+
+check_forbidden_patterns() {
+    local page_file="$1"
+    local page_name="$(basename "$page_file" .tsx)"
+
+    if [ ! -f "$page_file" ]; then
+        return 0
+    fi
+
+    local has_violations=0
+
+    # インラインstyle属性の使用チェック（CRITICAL）
+    if grep -q 'style={{' "$page_file"; then
+        echo "❌ CRITICAL ERROR: $page_name - インライン style={{}} を使用しています"
+        echo "   → ui-componentsテンプレートを使用してください"
+        echo "   参照: CLAUDE.md セクション2.1"
+        ERRORS=$((ERRORS + 1))
+        has_violations=1
+    fi
+
+    # CSS-in-JSライブラリの使用チェック（CRITICAL）
+    if grep -qE 'styled\.|css`|makeStyles|createStyles' "$page_file"; then
+        echo "❌ CRITICAL ERROR: $page_name - CSS-in-JSライブラリを使用しています"
+        echo "   → ui-componentsテンプレートを使用してください"
+        echo "   参照: CLAUDE.md セクション2.1"
+        ERRORS=$((ERRORS + 1))
+        has_violations=1
+    fi
+
+    return $has_violations
+}
+
+# 全Pageファイルをチェック
+find "$PAGES_DIR" -name "*.tsx" -type f | while read page_file; do
+    check_forbidden_patterns "$page_file"
+done
+
+# 7-3: return文の構造チェック
+echo ""
+echo "7-3: return文の構造チェック"
+
+check_return_structure() {
+    local page_file="$1"
+    local expected_template="$2"
+    local page_name="$(basename "$page_file" .tsx)"
+
+    if [ ! -f "$page_file" ]; then
+        return 0
+    fi
+
+    # return直後の構造を抽出（空白を除去して比較）
+    return_content=$(awk '/^[[:space:]]*return[[:space:]]*\(/,/^[[:space:]]*\);/' "$page_file" | \
+        grep -v '^[[:space:]]*return' | \
+        grep -v '^[[:space:]]*);' | \
+        head -5)
+
+    # テンプレートコンポーネントタグが最初に来ているかチェック
+    first_element=$(echo "$return_content" | grep -oE '<[A-Z][a-zA-Z]+' | head -1 | tr -d '<')
+
+    if [ -n "$expected_template" ] && [ "$first_element" != "$expected_template" ]; then
+        echo "⚠️  WARNING: $page_name - return文が<$expected_template>で始まっていません"
+        echo "   実際の最初の要素: <$first_element>"
+        echo "   → テンプレートをラップしている可能性があります"
+        echo "   参照: CLAUDE.md セクション2.2"
+        WARNINGS=$((WARNINGS + 1))
+        return 1
+    fi
+
+    return 0
+}
+
+check_return_structure "$PAGES_DIR/Dashboard.tsx" "DashboardPageTemplate"
+check_return_structure "$PAGES_DIR/Auth/LoginPage.tsx" "LoginPageTemplate"
+check_return_structure "$PAGES_DIR/Auth/SignupPage.tsx" "SignupPageTemplate"
+
+# 7-4: Props完全性チェック（SPレイアウト対応）
+echo ""
+echo "7-4: Props完全性チェック"
+
+check_dashboard_props() {
+    local page_file="$PAGES_DIR/Dashboard.tsx"
+    local page_name="$(basename "$page_file" .tsx)"
+
+    if [ ! -f "$page_file" ]; then
+        return 0
+    fi
+
+    local has_violations=0
+
+    # onNavigate propが渡されているかチェック
+    if ! grep -q "onNavigate=" "$page_file"; then
+        echo "❌ CRITICAL ERROR: $page_name - onNavigate prop が渡されていません"
+        echo "   → サイドバーナビゲーションが機能しません"
+        echo "   参照: ui-components/DashboardPage.tsx:344"
+        ERRORS=$((ERRORS + 1))
+        has_violations=1
+    fi
+
+    # onLogout propが渡されているかチェック
+    if ! grep -q "onLogout=" "$page_file"; then
+        echo "❌ CRITICAL ERROR: $page_name - onLogout prop が渡されていません"
+        echo "   → ログアウト機能が動作しません"
+        echo "   参照: ui-components/DashboardPage.tsx:345"
+        ERRORS=$((ERRORS + 1))
+        has_violations=1
+    fi
+
+    # currentPage propが渡されているかチェック
+    if ! grep -q "currentPage=" "$page_file"; then
+        echo "⚠️  WARNING: $page_name - currentPage prop が渡されていません"
+        echo "   → サイドバーのアクティブ状態が表示されません"
+        echo "   参照: ui-components/DashboardPage.tsx:316"
+        WARNINGS=$((WARNINGS + 1))
+        has_violations=1
+    fi
+
+    # hideNavigation propが渡されているかチェック
+    if ! grep -q "hideNavigation=" "$page_file"; then
+        echo "⚠️  WARNING: $page_name - hideNavigation prop が指定されていません"
+        echo "   → デフォルト(true)でTemplateNavigationが非表示になります"
+        echo "   注意: hideNavigation=true の場合、viewMode切り替えができなくなります"
+        echo "   推奨: 本番環境では hideNavigation={true} を指定"
+        echo "   参照: ui-components/DashboardPage.tsx:317"
+        WARNINGS=$((WARNINGS + 1))
+        has_violations=1
+    fi
+
+    # SPレイアウト対応の確認
+    echo ""
+    echo "7-4-SP: SPレイアウト検証"
+
+    SP_LAYOUT_CHECKER="$PROJECT_ROOT/dev-kit/scripts/validations/check-dashboard-sp-layout.sh"
+
+    if [ -f "$SP_LAYOUT_CHECKER" ]; then
+        # SPレイアウト検証スクリプトを実行
+        bash "$SP_LAYOUT_CHECKER"
+
+        echo "⚠️  INFO: SPレイアウトの手動検証が必要です"
+        echo "   以下を確認してください:"
+        echo "   1. viewMode='sp' でハンバーガーメニュー（☰）が表示される"
+        echo "   2. ハンバーガーメニューをクリックしてメニューが開く"
+        echo "   3. フッターが正しく表示される"
+        echo ""
+        echo "   詳細: dev-kit/docs/validations/dashboard-sp-layout-checklist.md"
+    else
+        echo "⚠️  WARNING: SPレイアウト検証スクリプトが存在しません"
+        echo "   作成推奨: $SP_LAYOUT_CHECKER"
+        WARNINGS=$((WARNINGS + 1))
+    fi
+
+    echo ""
+
+    # 存在しないpropsの使用チェック（userName, userEmail等）
+    if grep -qE "userName=|userEmail=" "$page_file"; then
+        echo "❌ CRITICAL ERROR: $page_name - 存在しないprops (userName, userEmail等) を渡しています"
+        echo "   → DashboardPagePropsインターフェースに定義されていません"
+        echo "   参照: ui-components/DashboardPage.tsx:246-348"
+        ERRORS=$((ERRORS + 1))
+        has_violations=1
+    fi
+
+    if [ $has_violations -eq 0 ]; then
+        echo "✅ PASS: $page_name - 必須propsが正しく渡されています"
+    fi
+
+    return $has_violations
+}
+
+check_dashboard_props
+
+echo ""
+
+# ==========================================
+# Phase 8: バリデーションロジック検証
+# ==========================================
+echo "【Phase 8】バリデーションロジック検証"
 echo "--------------------------------------------------"
 
 # CRITICAL-023: フロントエンドバリデーション未実装検出
