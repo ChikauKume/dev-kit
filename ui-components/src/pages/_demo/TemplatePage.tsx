@@ -11,7 +11,7 @@ import SignupPage from '../templates/auth/SignupPage';
 import SignupConfirmPage from '../templates/auth/SignupConfirmPage';
 import SignupCompletePage from '../templates/auth/SignupCompletePage';
 import Error404Page from '../templates/error/Error404Page';
-import Error505Page from '../templates/error/Error505Page';
+import Error500Page from '../templates/error/Error500Page';
 import MaintenancePage from '../templates/error/MaintenancePage';
 import CommercialPage from '../templates/info/CommercialPage';
 import TermsPage from '../templates/info/TermsPage';
@@ -29,7 +29,7 @@ import DataFormPage from './containers/DataFormPage';
 
 const TemplatePage: React.FC = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'login' | 'forgot-password' | 'reset-password' | 'signup' | 'signup-confirm' | 'signup-complete' | 'error-404' | 'error-505' | 'maintenance' | 'data-list' | 'data-detail' | 'data-create' | 'data-edit' | 'statistics' | 'qna' | 'terms' | 'privacy' | 'commercial'>('login');
+  const [activeTab, setActiveTab] = useState<'login' | 'forgot-password' | 'reset-password' | 'signup' | 'signup-confirm' | 'signup-complete' | 'error-404' | 'error-500' | 'maintenance' | 'data-list' | 'data-detail' | 'data-create' | 'data-edit' | 'statistics' | 'qna' | 'terms' | 'privacy' | 'commercial'>('login');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotificationDropdown, setShowNotificationDropdown] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
@@ -715,8 +715,8 @@ const TemplatePage: React.FC = () => {
         <Error404Page onNavigate={handleNavigate} hideNavigation={true} />
       )}
 
-      {activeTab === 'error-505' && (
-        <Error505Page onNavigate={handleNavigate} hideNavigation={true} />
+      {activeTab === 'error-500' && (
+        <Error500Page onNavigate={handleNavigate} hideNavigation={true} />
       )}
 
       {activeTab === 'maintenance' && (

@@ -10,7 +10,7 @@ export type ActiveTab =
   | 'signup-complete'
   | 'settings'
   | 'error-404'
-  | 'error-505'
+  | 'error-500'
   | 'maintenance'
   | 'notifications'
   | 'data-list'

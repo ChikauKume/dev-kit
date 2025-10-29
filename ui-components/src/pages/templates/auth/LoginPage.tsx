@@ -68,6 +68,7 @@ interface LoginPageProps extends BaseAuthPageProps {
   email?: string;
   password?: string;
   rememberMe?: boolean;
+  showRememberMe?: boolean; // ログイン状態保持チェックボックスの表示制御
   onEmailChange?: (value: string) => void;
   onPasswordChange?: (value: string) => void;
   onRememberMeChange?: (checked: boolean) => void;
@@ -96,6 +97,7 @@ const LoginPage: React.FC<LoginPageProps> = (props) => {
   const email = props.email !== undefined ? props.email : internalEmail;
   const password = props.password !== undefined ? props.password : internalPassword;
   const rememberMe = props.rememberMe !== undefined ? props.rememberMe : internalRememberMe;
+  const showRememberMe = props.showRememberMe !== undefined ? props.showRememberMe : false; // デフォルトは非表示
 
   // ✅ Inertia.js標準Props自動マッピング
   // Laravel側のバリデーションエラーを自動的に取得
@@ -252,13 +254,15 @@ const LoginPage: React.FC<LoginPageProps> = (props) => {
             error={loginErrors.password}
           />
 
-          <label className="remember-me">
-            <Checkbox
-              checked={rememberMe}
-              onChange={(e) => handleRememberMeChange(e.target.checked)}
-            />
-            <span>ログイン状態を保存する</span>
-          </label>
+          {showRememberMe && (
+            <label className="remember-me">
+              <Checkbox
+                checked={rememberMe}
+                onChange={(e) => handleRememberMeChange(e.target.checked)}
+              />
+              <span>ログイン状態を保存する</span>
+            </label>
+          )}
 
           <div style={{ textAlign: 'center' }}>
             <a

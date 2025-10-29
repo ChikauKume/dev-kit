@@ -581,7 +581,7 @@ validate_step_7() {
         echo "   💥 影響: CLAUDE.md 違反（dev-kit/ui-components 使用必須）"
         echo "   ✅ 推奨修正:"
         echo "      1. app/Exceptions/Handler.php で Inertia レンダリングに変更"
-        echo "      2. Error404Page, Error505Page テンプレートを使用"
+        echo "      2. Error404Page, Error500Page テンプレートを使用"
         echo "      3. resources/views/errors/ のデフォルトファイルを削除"
     fi
 

@@ -59,8 +59,8 @@ if [ -d "$SPECS_DIR" ]; then
         FLOWS_FILE="$SPECS_DIR/$spec_name/tests/playwright-flows.yaml"
 
         if [ -f "$FLOWS_FILE" ]; then
-            # spec-to-test-validatorを実行
-            if bash "$SCRIPT_DIR/spec-to-test-validator.sh" "$spec_name"; then
+            # spec-testを実行
+            if bash "$SCRIPT_DIR/spec-test.sh" "$spec_name"; then
                 success "$spec_name - 仕様とテスト実装が一致"
             else
                 error "$spec_name - 仕様書に定義されているがテスト未実装のフローが存在"
@@ -348,7 +348,7 @@ log ""
 log "Gate 8: フォームバリデーションエラー表示検証"
 log "------------------------------------------"
 
-FORM_VALIDATION_VALIDATOR="$PROJECT_ROOT/dev-kit/scripts/validations/form-validation-error-display-validator.sh"
+FORM_VALIDATION_VALIDATOR="$PROJECT_ROOT/dev-kit/scripts/validations/form-error.sh"
 
 if [ -f "$FORM_VALIDATION_VALIDATOR" ]; then
     if bash "$FORM_VALIDATION_VALIDATOR"; then

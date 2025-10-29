@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import InfoPageWrapper, { SidebarMenuItem } from '../../../components/layout/InfoPageWrapper';
 import TemplateNavigation from '../../../components/navigation/TemplateNavigation';
 import Icon from '../../../components/icons/Icon';
@@ -500,6 +500,25 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
   const [isHamburgerOpen, setIsHamburgerOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [localNotifications, setLocalNotifications] = useState(notifications);
+
+  // レスポンシブ viewMode 自動検出
+  useEffect(() => {
+    const updateViewMode = () => {
+      const width = window.innerWidth;
+      const newMode = width <= 768 ? 'sp' : 'pc';
+      setViewMode(newMode);
+    };
+
+    // 初回実行
+    updateViewMode();
+
+    // リサイズイベントリスナー
+    window.addEventListener('resize', updateViewMode);
+
+    return () => {
+      window.removeEventListener('resize', updateViewMode);
+    };
+  }, [setViewMode]);
 
   /**
    * Navigation handler

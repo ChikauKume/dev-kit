@@ -82,6 +82,14 @@ Clean Architecture（4層構造）を採用。詳細は `tech.md` を参照。
 ダッシュボード → ログアウト → ログイン画面(/login)
 ```
 
+**ダッシュボード仕様**:
+- **URL**: `/dashboard`
+- **テンプレート**: `DashboardPage`（ui-components）
+- **認証**: 必須（middleware: auth）
+- **表示内容**: ユーザー名の表示のみ（例: "ようこそ、田中太郎さん"）
+- **コントローラー**: `DashboardController`
+- **スコープ**: user-authentication機能に含む（ログイン後の最初のページとして必須）
+
 画面のビジネスルールや詳細な仕様については `dev-kit/docs/architecture/pages.md` を参照。
 
 **注記**: パスワードリセット機能は別仕様書 `user-password-reset/design.md` を参照してください。
@@ -162,6 +170,9 @@ Clean Architecture（4層構造）を採用。詳細は `tech.md` を参照。
   - **バックエンド**: 半角数字のみ許可（全角数字・ハイフンはバリデーションエラー）
 - `password`: 必須、8文字以上255文字以下、英字と数字を少なくとも1文字ずつ含む、記号使用可
 - `password_confirmation`: 必須、passwordと一致
+- `agreeToTerms`: 必須、チェックボックス、利用規約への同意（accepted）
+  - **フロントエンド**: チェックボックスOFF状態では送信不可（バリデーションエラー表示）
+  - **バックエンド**: `accepted`ルール（true, 1, "yes", "on"のいずれかが必須）
 
 **エラーメッセージ詳細**: `dev-kit/docs/specs/user-authentication/tests/test-cases.yaml` を参照
 
@@ -217,11 +228,11 @@ Clean Architecture（4層構造）を採用。詳細は `tech.md` を参照。
 
 | 画面 | URL | テンプレート | 備考 |
 |-----|-----|-----------|------|
-| ログイン | `/login` | LoginPage | - |
-| 新規登録 | `/signup` | FormPage | バリデーション付きフォーム |
+| ログイン | `/login` | LoginPage | `showRememberMe={false}`（ログイン状態保持チェックボックス非表示） |
+| 新規登録 | `/signup` | FormPage | バリデーション付きフォーム、`agreeToTerms`必須 |
 | 登録内容確認 | `/signup/confirm` | DetailPage | 読み取り専用、「戻る」「登録」ボタン配置 |
 | 登録完了 | `/signup/complete` | MessagePage | 完了メッセージ表示 |
-| ダッシュボード | `/dashboard` | DashboardPage | - |
-| 404エラー | - | Error404Page | - |
-| 500エラー | - | Error500Page | - |
+| ダッシュボード | `/dashboard` | DashboardPage | ユーザー名表示のみ、認証必須 |
+| 404エラー | - | Error404Page | `hideNavigation={true}` |
+| 500エラー | - | Error500Page | `hideNavigation={true}` |
 

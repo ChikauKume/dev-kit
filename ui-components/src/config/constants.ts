@@ -33,7 +33,7 @@ export const ROUTES = {
   PRIVACY: '/privacy',
   COMMERCIAL: '/commercial',
   ERROR_404: '/404',
-  ERROR_505: '/505',
+  ERROR_500: '/500',
   MAINTENANCE: '/maintenance'
 } as const;
 
@@ -61,7 +61,7 @@ export const PAGE_TABS = {
   PRIVACY: 'privacy',
   COMMERCIAL: 'commercial',
   ERROR_404: 'error-404',
-  ERROR_505: 'error-505',
+  ERROR_500: 'error-500',
   MAINTENANCE: 'maintenance'
 } as const;
 
@@ -89,7 +89,7 @@ export const PAGE_TAB_LABELS: Record<string, string> = {
   [PAGE_TABS.PRIVACY]: 'プライバシーポリシー',
   [PAGE_TABS.COMMERCIAL]: '特定商取引法に基づく表記',
   [PAGE_TABS.ERROR_404]: '404エラー',
-  [PAGE_TABS.ERROR_505]: '505エラー',
+  [PAGE_TABS.ERROR_500]: '500エラー',
   [PAGE_TABS.MAINTENANCE]: 'メンテナンス'
 } as const;
 

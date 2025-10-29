@@ -29,7 +29,7 @@ import SignupCompletePage from './pages/templates/auth/SignupCompletePage.tsx';
 
 // Error templates
 import Error404Page from './pages/templates/error/Error404Page.tsx';
-import Error505Page from './pages/templates/error/Error505Page.tsx';
+import Error500Page from './pages/templates/error/Error500Page.tsx';
 import MaintenancePage from './pages/templates/error/MaintenancePage.tsx';
 
 // Info templates
@@ -229,7 +229,7 @@ function App() {
 
             {/* Error Pages - Individual routes */}
             <Route path="/pages/error-404" element={<Error404Page />} />
-            <Route path="/pages/error-505" element={<Error505Page />} />
+            <Route path="/pages/error-500" element={<Error500Page />} />
             <Route path="/pages/maintenance" element={<MaintenancePage />} />
 
             {/* Info Pages - Individual routes */}
@@ -262,7 +262,7 @@ function App() {
 
             {/* Error Templates */}
             <Route path="/templates/error-404" element={<Error404Page />} />
-            <Route path="/templates/error-505" element={<Error505Page />} />
+            <Route path="/templates/error-500" element={<Error500Page />} />
             <Route path="/templates/maintenance" element={<MaintenancePage />} />
 
             {/* Info Templates */}

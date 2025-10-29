@@ -605,26 +605,13 @@ check_dashboard_props() {
     # SPレイアウト対応の確認
     echo ""
     echo "7-4-SP: SPレイアウト検証"
-
-    SP_LAYOUT_CHECKER="$PROJECT_ROOT/dev-kit/scripts/validations/check-dashboard-sp-layout.sh"
-
-    if [ -f "$SP_LAYOUT_CHECKER" ]; then
-        # SPレイアウト検証スクリプトを実行
-        bash "$SP_LAYOUT_CHECKER"
-
-        echo "⚠️  INFO: SPレイアウトの手動検証が必要です"
-        echo "   以下を確認してください:"
-        echo "   1. viewMode='sp' でハンバーガーメニュー（☰）が表示される"
-        echo "   2. ハンバーガーメニューをクリックしてメニューが開く"
-        echo "   3. フッターが正しく表示される"
-        echo ""
-        echo "   詳細: dev-kit/docs/validations/dashboard-sp-layout-checklist.md"
-    else
-        echo "⚠️  WARNING: SPレイアウト検証スクリプトが存在しません"
-        echo "   作成推奨: $SP_LAYOUT_CHECKER"
-        WARNINGS=$((WARNINGS + 1))
-    fi
-
+    echo "⚠️  INFO: SPレイアウトの手動検証が必要です"
+    echo "   以下を確認してください:"
+    echo "   1. viewMode='sp' でハンバーガーメニュー（☰）が表示される"
+    echo "   2. ハンバーガーメニューをクリックしてメニューが開く"
+    echo "   3. フッターが正しく表示される"
+    echo ""
+    echo "   詳細: dev-kit/docs/validations/dashboard-sp-layout-checklist.md"
     echo ""
 
     # 存在しないpropsの使用チェック（userName, userEmail等）
@@ -685,6 +672,249 @@ if [ -n "$HARDCODED_MESSAGES" ]; then
     echo "   参照: tech.md - 'バリデーションメッセージの統一'"
     echo "$HARDCODED_MESSAGES" | head -3
     WARNINGS=$((WARNINGS + 1))
+fi
+
+# 8. LoginPage の showRememberMe チェック (design.md 準拠)
+LOGIN_PAGE="$PAGES_DIR/Auth/Login.tsx"
+if [ -f "$LOGIN_PAGE" ]; then
+    # showRememberMe={true} の誤設定をチェック
+    if grep -q "showRememberMe={true}" "$LOGIN_PAGE" 2>/dev/null; then
+        echo "❌ CRITICAL ERROR: Login.tsx で showRememberMe={true} が設定されています"
+        echo "   design.md 仕様: ログイン状態保持チェックボックスはデフォルト非表示"
+        echo "   修正: showRememberMe={false} に変更するか、プロパティを削除してください"
+        echo "   参照: design.md 画面一覧テーブル"
+        ERRORS=$((ERRORS + 1))
+    else
+        # showRememberMe={false} または未指定の場合
+        if grep -q "showRememberMe={false}" "$LOGIN_PAGE" 2>/dev/null; then
+            echo "✅ PASS: Login.tsx で showRememberMe={false} が明示的に設定されています"
+        elif ! grep -q "showRememberMe" "$LOGIN_PAGE" 2>/dev/null; then
+            echo "✅ PASS: Login.tsx で showRememberMe は未指定（デフォルト非表示）です"
+        fi
+    fi
+fi
+
+# 9. Dashboard の hideNavigation チェック (design.md 準拠)
+DASHBOARD_PAGE="$PAGES_DIR/Dashboard.tsx"
+if [ -f "$DASHBOARD_PAGE" ]; then
+    # hideNavigation={false} の誤設定をチェック
+    if grep -q "hideNavigation={false}" "$DASHBOARD_PAGE" 2>/dev/null; then
+        echo "❌ CRITICAL ERROR: Dashboard.tsx で hideNavigation={false} が設定されています"
+        echo "   design.md 仕様: Dashboardでは TemplateNavigation を非表示にする"
+        echo "   修正: hideNavigation={true} に変更してください"
+        echo "   参照: design.md - Dashboard仕様"
+        ERRORS=$((ERRORS + 1))
+    else
+        # hideNavigation={true} または未指定の場合
+        if grep -q "hideNavigation={true}" "$DASHBOARD_PAGE" 2>/dev/null; then
+            echo "✅ PASS: Dashboard.tsx で hideNavigation={true} が設定されています"
+        else
+            echo "⚠️  WARNING: Dashboard.tsx で hideNavigation が明示的に設定されていません"
+            echo "   推奨: hideNavigation={true} を明示的に設定してください"
+            WARNINGS=$((WARNINGS + 1))
+        fi
+    fi
+
+    # DashboardPageTemplate の使用チェック
+    if ! grep -q "DashboardPageTemplate\|DashboardPage" "$DASHBOARD_PAGE" 2>/dev/null; then
+        echo "❌ CRITICAL ERROR: Dashboard.tsx で DashboardPageTemplate を使用していません"
+        echo "   design.md 仕様: Dashboard は ui-components の DashboardPage テンプレートを使用"
+        echo "   修正: import DashboardPageTemplate from '@/dev-kit/ui-components/src/pages/templates/dashboard/DashboardPage'"
+        ERRORS=$((ERRORS + 1))
+    else
+        echo "✅ PASS: Dashboard.tsx で DashboardPageTemplate を使用しています"
+    fi
+fi
+
+# 10. SPレスポンシブ対応チェック（ui-components DashboardPage検証）
+echo ""
+echo "=================================================="
+echo "Phase 10: SPレスポンシブ対応検証"
+echo "=================================================="
+echo ""
+
+# ui-components の DashboardPage.tsx を検証
+DASHBOARD_PAGE_TEMPLATE="dev-kit/ui-components/src/pages/templates/dashboard/DashboardPage.tsx"
+
+if [ -f "$DASHBOARD_PAGE_TEMPLATE" ]; then
+    echo "🎯 ui-components DashboardPage テンプレートを検証中..."
+    echo ""
+
+    # useEffect のインポートチェック
+    if grep -q "import.*useEffect.*from 'react'" "$DASHBOARD_PAGE_TEMPLATE" 2>/dev/null; then
+        echo "✅ PASS: useEffect がインポートされています"
+    else
+        echo "❌ CRITICAL ERROR: useEffect がインポートされていません"
+        echo "   修正: import React, { useState, useRef, useEffect } from 'react';"
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    # レスポンシブ viewMode 自動検出の実装チェック
+    if grep -q "window\.innerWidth" "$DASHBOARD_PAGE_TEMPLATE" 2>/dev/null && \
+       grep -q "addEventListener('resize'" "$DASHBOARD_PAGE_TEMPLATE" 2>/dev/null && \
+       grep -q "width <= 768" "$DASHBOARD_PAGE_TEMPLATE" 2>/dev/null; then
+        echo "✅ PASS: レスポンシブ viewMode 自動検出が実装されています"
+        echo "   - window.innerWidth による幅検出"
+        echo "   - resize イベントリスナー登録"
+        echo "   - 768px ブレークポイント設定"
+    else
+        echo "❌ CRITICAL ERROR: レスポンシブ viewMode 自動検出が実装されていません"
+        echo "   DashboardPage テンプレートには以下の実装が必要です:"
+        echo ""
+        echo "   useEffect(() => {"
+        echo "     const updateViewMode = () => {"
+        echo "       const width = window.innerWidth;"
+        echo "       const newMode = width <= 768 ? 'sp' : 'pc';"
+        echo "       setViewMode(newMode);"
+        echo "     };"
+        echo "     updateViewMode();"
+        echo "     window.addEventListener('resize', updateViewMode);"
+        echo "     return () => window.removeEventListener('resize', updateViewMode);"
+        echo "   }, [setViewMode]);"
+        echo ""
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    echo ""
+
+    # force-mobile クラス適用チェック
+    if grep -q "force-mobile" "$DASHBOARD_PAGE_TEMPLATE" 2>/dev/null && \
+       grep -q "viewMode === 'sp'" "$DASHBOARD_PAGE_TEMPLATE" 2>/dev/null; then
+        echo "✅ PASS: force-mobile クラスが viewMode='sp' 時に適用されます"
+    else
+        echo "❌ CRITICAL ERROR: force-mobile クラスの適用が見つかりません"
+        echo "   return 文で <div className={viewMode === 'sp' ? 'force-mobile' : ''}> が必要です"
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    echo ""
+else
+    echo "⚠️  WARNING: ui-components DashboardPage テンプレートが見つかりません"
+    echo "   パス: $DASHBOARD_PAGE_TEMPLATE"
+    WARNINGS=$((WARNINGS + 1))
+fi
+
+# InfoPageWrapper または DashboardPage を使用するページを検出（実装側の確認）
+PAGES_USING_DASHBOARD=$(grep -rl "DashboardPageTemplate\|DashboardPage" "$PAGES_DIR" 2>/dev/null | grep "\.tsx$" || true)
+
+if [ -n "$PAGES_USING_DASHBOARD" ]; then
+    echo "📱 DashboardPageTemplate使用ページを検出:"
+    echo "$PAGES_USING_DASHBOARD" | sed 's/^/   - /'
+    echo ""
+
+    while IFS= read -r PAGE_FILE; do
+        PAGE_NAME=$(basename "$PAGE_FILE")
+
+        # DashboardPageTemplate を使用している場合は、テンプレート側でレスポンシブ対応済み
+        echo "✅ PASS: $PAGE_NAME - DashboardPageTemplate使用（テンプレート側で自動レスポンシブ対応）"
+
+        # 不要な useViewMode の使用を警告
+        if grep -q "import.*useViewMode" "$PAGE_FILE" 2>/dev/null; then
+            echo "ℹ️  INFO: $PAGE_NAME - useViewMode をインポートしていますが、DashboardPageTemplate使用時は不要です"
+            echo "   DashboardPageTemplate 内部で自動的にレスポンシブ対応されます"
+        fi
+
+        echo ""
+    done <<< "$PAGES_USING_DASHBOARD"
+else
+    echo "ℹ️  INFO: DashboardPageTemplate使用ページが見つかりませんでした"
+fi
+
+echo ""
+
+# 11. エラーページ検証（404/500）
+echo "=================================================="
+echo "Phase 11: エラーページ検証（404/500）"
+echo "=================================================="
+echo ""
+
+ERROR_PAGE="$PAGES_DIR/Error.tsx"
+if [ -f "$ERROR_PAGE" ]; then
+    echo "📄 Error.tsx を検出しました"
+    echo ""
+
+    # Error404Page テンプレートの使用チェック（404エラー）
+    if grep -q "Error404Page" "$ERROR_PAGE" 2>/dev/null; then
+        echo "✅ PASS: Error.tsx で Error404Page テンプレートを使用しています"
+
+        # hideNavigation={true} の設定チェック
+        if grep -A 5 "Error404Page" "$ERROR_PAGE" | grep -q "hideNavigation={true}" 2>/dev/null; then
+            echo "✅ PASS: Error404Page で hideNavigation={true} が設定されています"
+        else
+            echo "❌ CRITICAL ERROR: Error404Page で hideNavigation={true} が設定されていません"
+            echo "   修正: <Error404Page hideNavigation={true} ... />"
+            ERRORS=$((ERRORS + 1))
+        fi
+    else
+        echo "❌ CRITICAL ERROR: Error.tsx で Error404Page テンプレートを使用していません"
+        echo "   独自実装は禁止: ui-components の Error404Page テンプレートを使用してください"
+        echo "   修正例: import Error404Page from '@/dev-kit/ui-components/src/pages/templates/error/Error404Page';"
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    echo ""
+
+    # Error500Page テンプレートの使用チェック（500エラー）
+    if grep -q "Error500Page" "$ERROR_PAGE" 2>/dev/null; then
+        echo "✅ PASS: Error.tsx で Error500Page テンプレートを使用しています"
+
+        # hideNavigation={true} の設定チェック
+        if grep -A 5 "Error500Page" "$ERROR_PAGE" | grep -q "hideNavigation={true}" 2>/dev/null; then
+            echo "✅ PASS: Error500Page で hideNavigation={true} が設定されています"
+        else
+            echo "❌ CRITICAL ERROR: Error500Page で hideNavigation={true} が設定されていません"
+            echo "   修正: <Error500Page hideNavigation={true} ... />"
+            ERRORS=$((ERRORS + 1))
+        fi
+    else
+        echo "❌ CRITICAL ERROR: Error.tsx で Error500Page テンプレートを使用していません"
+        echo "   独自実装は禁止: ui-components の Error500Page テンプレートを使用してください"
+        echo "   修正例: import Error500Page from '@/dev-kit/ui-components/src/pages/templates/error/Error500Page';"
+        ERRORS=$((ERRORS + 1))
+    fi
+
+    echo ""
+
+    # 独自実装の検出（404/500以外のステータスコード用のフォールバックは許可）
+    # 404/500では ui-components テンプレートを使用し、
+    # 他のエラー（403, 503等）のフォールバックは許容される
+    if grep -q "if (status === 404)" "$ERROR_PAGE" 2>/dev/null && \
+       grep -q "if (status === 500)" "$ERROR_PAGE" 2>/dev/null; then
+        echo "✅ PASS: 404/500エラーで ui-components テンプレートを使用しています"
+
+        # フォールバックロジックの存在確認（403, 503等の対応）
+        if grep -q "errorMessages.*Record<number" "$ERROR_PAGE" 2>/dev/null; then
+            echo "ℹ️  INFO: 404/500以外のエラーコード用のフォールバックロジックが実装されています"
+        fi
+    else
+        echo "⚠️  WARNING: Error.tsx の実装パターンが標準と異なります"
+        echo "   確認: 404/500では ui-components テンプレートを使用してください"
+        WARNINGS=$((WARNINGS + 1))
+    fi
+
+    echo ""
+
+    # onNavigate 実装チェック
+    if grep -q "onNavigate" "$ERROR_PAGE" 2>/dev/null; then
+        echo "✅ PASS: Error.tsx で onNavigate が実装されています"
+
+        # Inertia router の使用チェック
+        if grep -q "import.*router.*from '@inertiajs/react'" "$ERROR_PAGE" 2>/dev/null; then
+            echo "✅ PASS: Inertia router を使用しています"
+        else
+            echo "⚠️  WARNING: Inertia router のインポートが見つかりません"
+            echo "   確認: import { router } from '@inertiajs/react';"
+            WARNINGS=$((WARNINGS + 1))
+        fi
+    else
+        echo "❌ CRITICAL ERROR: Error.tsx で onNavigate が実装されていません"
+        echo "   修正例: const handleNavigate = (page: string) => { router.visit(\`/\${page}\`); };"
+        ERRORS=$((ERRORS + 1))
+    fi
+
+else
+    echo "ℹ️  INFO: Error.tsx が見つかりませんでした"
+    echo "   推奨: エラーページ実装時は ui-components の Error404Page/Error500Page テンプレートを使用してください"
 fi
 
 echo ""

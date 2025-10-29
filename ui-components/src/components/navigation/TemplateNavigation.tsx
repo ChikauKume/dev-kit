@@ -106,7 +106,7 @@ const TemplateNavigation: React.FC<TemplateNavigationProps> = ({
 
   const isOtherActive = location ? [
     `${routePrefix}/error-404`,
-    `${routePrefix}/error-505`,
+    `${routePrefix}/error-500`,
     `${routePrefix}/maintenance`,
     `${routePrefix}/qna`,
     `${routePrefix}/terms`,
@@ -149,7 +149,7 @@ const TemplateNavigation: React.FC<TemplateNavigationProps> = ({
     if (location.pathname.startsWith(`${routePrefix}/privacy`)) return 'プライバシーポリシー';
     if (location.pathname.startsWith(`${routePrefix}/commercial`)) return '特定商取引法';
     if (location.pathname.startsWith(`${routePrefix}/error-404`)) return '404エラー';
-    if (location.pathname.startsWith(`${routePrefix}/error-505`)) return '505エラー';
+    if (location.pathname.startsWith(`${routePrefix}/error-500`)) return '500エラー';
     if (location.pathname.startsWith(`${routePrefix}/maintenance`)) return 'メンテナンス';
     return 'ページを選択';
   };
@@ -237,7 +237,7 @@ const TemplateNavigation: React.FC<TemplateNavigationProps> = ({
                   エラー/メンテナンス
                 </div>
                 <Dropdown.Link onClick={() => navigate?.(`${routePrefix}/error-404`)}>404エラー</Dropdown.Link>
-                <Dropdown.Link onClick={() => navigate?.(`${routePrefix}/error-505`)}>505エラー</Dropdown.Link>
+                <Dropdown.Link onClick={() => navigate?.(`${routePrefix}/error-500`)}>500エラー</Dropdown.Link>
                 <Dropdown.Link onClick={() => navigate?.(`${routePrefix}/maintenance`)}>メンテナンス</Dropdown.Link>
               </Dropdown.Content>
             </Dropdown>

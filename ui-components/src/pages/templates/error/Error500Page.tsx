@@ -3,24 +3,24 @@ import TemplateNavigation from '../../../components/navigation/TemplateNavigatio
 import { useViewMode } from '../../../hooks/useViewMode';
 
 /**
- * Error505Page Component
+ * Error500Page Component
  *
- * 505エラーページ（予期せぬ不具合が発生しました）
+ * 500エラーページ（予期せぬ不具合が発生しました）
  *
  * **React Router不要**: このコンポーネントはReact Routerに依存しません
  * **Inertia.js対応**: そのまま使用可能
  *
  * @example Laravel + Inertia.js
- * return Inertia::render('templates/error/Error505Page', [
+ * return Inertia::render('templates/error/Error500Page', [
  *   'hideNavigation' => true,
  * ]);
  */
-interface Error505PageProps {
+interface Error500PageProps {
   onNavigate?: (page: string) => void;
   hideNavigation?: boolean;
 }
 
-const Error505Page: React.FC<Error505PageProps> = ({ onNavigate, hideNavigation }) => {
+const Error500Page: React.FC<Error500PageProps> = ({ onNavigate, hideNavigation }) => {
   const [viewMode, setViewMode] = useViewMode();
 
   const handleHomeClick = () => {
@@ -75,4 +75,4 @@ const Error505Page: React.FC<Error505PageProps> = ({ onNavigate, hideNavigation 
   );
 };
 
-export default Error505Page;
+export default Error500Page;
