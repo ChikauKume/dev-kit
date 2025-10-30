@@ -1,0 +1,272 @@
+# 統合テストケース定義テンプレート
+# PHPUnit Feature Tests (Presentation層の統合テスト)
+#
+# 使い方:
+#   1. design.md の「API仕様」「ルーティング」セクションを参照
+#   2. 各エンドポイント（Controller）に対してテストケースを定義
+#   3. HTTPリクエスト/レスポンスの観点でテストを作成
+#
+# 注意:
+#   - テスト比率: 正常系 30-40%, 異常系・境界値 60-70%
+#   - 認証が必要なエンドポイントは auth_required: true を指定
+
+# ===================================================================
+# テンプレート例: ユーザー登録API
+# ===================================================================
+user_registration_api:  # テストグループ名（スネークケース）
+  controller: UserRegistrationController  # Controllerクラス名（PascalCase）
+  module: User  # モジュール名（PascalCase）
+  endpoint: POST /api/users/register  # エンドポイント
+  auth_required: false  # 認証の要否
+
+  # テストケース定義
+  test_cases:
+    # ===================================================================
+    # 正常系テスト（30-40%）
+    # ===================================================================
+    - id: REG-F-001
+      name: 有効なデータで登録成功
+      category: 正常系
+      description: すべてのバリデーションを満たすデータで登録が成功する
+      request:
+        method: POST
+        url: /api/users/register
+        body:
+          name: "山田太郎"
+          email: "test@example.com"
+          password: "password1234"
+          password_confirmation: "password1234"
+          terms_agreed: true
+      expected_response:
+        status: 201
+        json:
+          success: true
+          message: "ユーザー登録が完了しました。"
+          data:
+            id: "integer"
+            name: "山田太郎"
+            email: "test@example.com"
+      assertions:
+        - database_has:
+            table: users
+            conditions:
+              email: "test@example.com"
+              name: "山田太郎"
+
+    # ===================================================================
+    # 異常系テスト（60-70%）
+    # ===================================================================
+    - id: REG-F-002
+      name: 必須フィールド未入力（name）
+      category: 異常系
+      description: nameフィールドが空の場合、422エラーが返される
+      request:
+        method: POST
+        url: /api/users/register
+        body:
+          name: ""  # 空文字
+          email: "test@example.com"
+          password: "password1234"
+          password_confirmation: "password1234"
+          terms_agreed: true
+      expected_response:
+        status: 422
+        json:
+          errors:
+            name: ["お名前は必須です。"]
+      assertions:
+        - database_missing:
+            table: users
+            conditions:
+              email: "test@example.com"
+
+    - id: REG-F-003
+      name: メールアドレス形式エラー
+      category: 異常系
+      description: 無効なメールアドレス形式の場合、422エラーが返される
+      request:
+        method: POST
+        url: /api/users/register
+        body:
+          name: "山田太郎"
+          email: "invalid-email"  # @がない
+          password: "password1234"
+          password_confirmation: "password1234"
+          terms_agreed: true
+      expected_response:
+        status: 422
+        json:
+          errors:
+            email: ["有効なメールアドレスを入力してください。"]
+
+    - id: REG-F-004
+      name: メールアドレス重複エラー
+      category: 異常系
+      description: 既に登録済みのメールアドレスの場合、422エラーが返される
+      setup:
+        - create_user:
+            email: "existing@example.com"
+            name: "既存ユーザー"
+      request:
+        method: POST
+        url: /api/users/register
+        body:
+          name: "山田太郎"
+          email: "existing@example.com"  # 既存
+          password: "password1234"
+          password_confirmation: "password1234"
+          terms_agreed: true
+      expected_response:
+        status: 422
+        json:
+          errors:
+            email: ["このメールアドレスは既に登録されています。"]
+
+    - id: REG-F-005
+      name: パスワード長さ不足
+      category: 異常系
+      description: パスワードが8文字未満の場合、422エラーが返される
+      request:
+        method: POST
+        url: /api/users/register
+        body:
+          name: "山田太郎"
+          email: "test@example.com"
+          password: "pass123"  # 7文字
+          password_confirmation: "pass123"
+          terms_agreed: true
+      expected_response:
+        status: 422
+        json:
+          errors:
+            password: ["パスワードは8文字以上で入力してください。"]
+
+    - id: REG-F-006
+      name: パスワード確認不一致
+      category: 異常系
+      description: passwordとpassword_confirmationが一致しない場合、422エラー
+      request:
+        method: POST
+        url: /api/users/register
+        body:
+          name: "山田太郎"
+          email: "test@example.com"
+          password: "password1234"
+          password_confirmation: "different1234"  # 不一致
+          terms_agreed: true
+      expected_response:
+        status: 422
+        json:
+          errors:
+            password_confirmation: ["パスワードが一致しません。"]
+
+    - id: REG-F-007
+      name: 利用規約未同意
+      category: 異常系
+      description: terms_agreedがfalseの場合、422エラーが返される
+      request:
+        method: POST
+        url: /api/users/register
+        body:
+          name: "山田太郎"
+          email: "test@example.com"
+          password: "password1234"
+          password_confirmation: "password1234"
+          terms_agreed: false  # 未同意
+      expected_response:
+        status: 422
+        json:
+          errors:
+            terms_agreed: ["利用規約に同意してください。"]
+
+    # ===================================================================
+    # 境界値テスト
+    # ===================================================================
+    - id: REG-F-008
+      name: 名前の最大長（255文字）
+      category: 境界値
+      description: 255文字の名前で登録が成功する
+      request:
+        method: POST
+        url: /api/users/register
+        body:
+          name: "{{ random_string(255) }}"  # 255文字のランダム文字列
+          email: "test@example.com"
+          password: "password1234"
+          password_confirmation: "password1234"
+          terms_agreed: true
+      expected_response:
+        status: 201
+
+    - id: REG-F-009
+      name: 名前の最大長超過（256文字）
+      category: 境界値
+      description: 256文字の名前で422エラーが返される
+      request:
+        method: POST
+        url: /api/users/register
+        body:
+          name: "{{ random_string(256) }}"  # 256文字
+          email: "test@example.com"
+          password: "password1234"
+          password_confirmation: "password1234"
+          terms_agreed: true
+      expected_response:
+        status: 422
+        json:
+          errors:
+            name: ["お名前は255文字以内で入力してください。"]
+
+# ===================================================================
+# 作成手順:
+# ===================================================================
+# 1. design.md の「API仕様」セクションを開く
+# 2. 各エンドポイントに対してテストケースを定義:
+#    - 正常系: 有効なデータでの成功ケース
+#    - 異常系: 各バリデーションルールの違反ケース
+#    - 境界値: 最小値・最大値のテスト
+# 3. expected_response.json は design.md のレスポンス例から転記
+# 4. assertions でDBの状態確認を追加（必要に応じて）
+
+# ===================================================================
+# テンプレート2: ログインAPI例
+# ===================================================================
+# user_login_api:
+#   controller: UserLoginController
+#   module: User
+#   endpoint: POST /api/users/login
+#   auth_required: false
+#
+#   test_cases:
+#     - id: LOG-F-001
+#       name: 有効な認証情報でログイン成功
+#       category: 正常系
+#       setup:
+#         - create_user:
+#             email: "user@example.com"
+#             password: "password123"
+#       request:
+#         method: POST
+#         url: /api/users/login
+#         body:
+#           email: "user@example.com"
+#           password: "password123"
+#       expected_response:
+#         status: 200
+#         json:
+#           success: true
+#           token: "string"
+#
+#     - id: LOG-F-002
+#       name: 誤ったパスワードでログイン失敗
+#       category: 異常系
+#       request:
+#         method: POST
+#         url: /api/users/login
+#         body:
+#           email: "user@example.com"
+#           password: "wrongpassword"
+#       expected_response:
+#         status: 401
+#         json:
+#           error: "メールアドレスまたはパスワードが正しくありません。"

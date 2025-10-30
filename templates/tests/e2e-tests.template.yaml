@@ -1,0 +1,262 @@
+# E2Eテストケース定義テンプレート
+# Playwright E2E Tests (エンドツーエンドのユーザーシナリオテスト)
+#
+# 使い方:
+#   1. design.md の「画面遷移」「ユーザーフロー」セクションを参照
+#   2. 完全なユーザーシナリオをステップバイステップで定義
+#   3. 正常系と異常系の両方のフローを作成
+#
+# 注意:
+#   - 1つのテストケース = 1つの完全なユーザーストーリー
+#   - 複数ページにまたがる操作を含める
+#   - テスト比率: 正常系 30-40%, 異常系・エラーハンドリング 60-70%
+
+# E2Eテストケース定義
+e2e_tests:
+  # ===================================================================
+  # 正常系: ユーザー登録フロー（E2E-001）
+  # ===================================================================
+  - id: E2E-001
+    name: ユーザー登録フロー（正常系）
+    category: 正常系
+    priority: high
+    description: 新規ユーザーが登録フォームから登録完了までのフロー
+    test_file: tests/e2e/user-authentication/e2e-001.spec.ts
+
+    # テストシナリオ（ステップバイステップ）
+    scenario: |
+      1. 登録ページ (/signup) にアクセス
+      2. 有効なユーザー情報を入力
+         - お名前: 山田太郎
+         - メールアドレス: test@example.com（ユニーク）
+         - パスワード: password1234
+         - パスワード確認: password1234
+         - 利用規約: チェック
+      3. 「登録内容を確認」ボタンをクリック
+      4. 確認ページ (/signup/confirm) にリダイレクト
+      5. 入力内容が正しく表示されることを確認
+      6. 「登録する」ボタンをクリック
+      7. 完了ページ (/signup/complete) にリダイレクト
+      8. 成功メッセージが表示される
+      9. データベースに新規ユーザーが作成されている
+
+    # 期待結果
+    expected_results:
+      - ページ遷移: /signup → /signup/confirm → /signup/complete
+      - Flash メッセージ: "ユーザー登録が完了しました。"
+      - データベース: users テーブルに新規レコード作成
+      - リダイレクト: /dashboard または /login
+
+    # 実装詳細（Playwright用）
+    playwright:
+      setup:
+        - clear_database: users  # テスト前にusersテーブルをクリア
+      steps:
+        - action: goto
+          url: /signup
+        - action: fill
+          selector: 'input[name="name"]'
+          value: "山田太郎"
+        - action: fill
+          selector: 'input[name="email"]'
+          value: "test@example.com"
+        - action: fill
+          selector: 'input[name="password"]'
+          value: "password1234"
+        - action: fill
+          selector: 'input[name="password_confirmation"]'
+          value: "password1234"
+        - action: check
+          selector: 'input[name="terms_agreed"]'
+        - action: click
+          selector: 'button:has-text("登録内容を確認")'
+        - action: expect_url
+          value: /signup/confirm
+        - action: click
+          selector: 'button:has-text("登録する")'
+        - action: expect_url
+          value: /signup/complete
+        - action: expect_text
+          selector: '.alert-success'
+          value: "ユーザー登録が完了しました。"
+
+  # ===================================================================
+  # 正常系: ログイン・ダッシュボード表示（E2E-002）
+  # ===================================================================
+  - id: E2E-002
+    name: ログイン・ダッシュボード表示（正常系）
+    category: 正常系
+    priority: high
+    description: 登録済みユーザーがログインしてダッシュボードを表示するフロー
+    test_file: tests/e2e/user-authentication/e2e-002.spec.ts
+
+    scenario: |
+      1. ログインページ (/login) にアクセス
+      2. 有効な認証情報を入力
+         - メールアドレス: user@example.com
+         - パスワード: password123
+      3. 「ログイン」ボタンをクリック
+      4. ダッシュボード (/dashboard) にリダイレクト
+      5. ユーザー名が表示される
+      6. ナビゲーションに「ログアウト」ボタンが表示される
+
+    expected_results:
+      - ページ遷移: /login → /dashboard
+      - セッション確立: ログイン状態になる
+      - UI表示: ユーザー名、ログアウトボタンが表示
+
+    playwright:
+      setup:
+        - create_user:
+            email: "user@example.com"
+            password: "password123"
+            name: "テストユーザー"
+      steps:
+        - action: goto
+          url: /login
+        - action: fill
+          selector: 'input[name="email"]'
+          value: "user@example.com"
+        - action: fill
+          selector: 'input[name="password"]'
+          value: "password123"
+        - action: click
+          selector: 'button:has-text("ログイン")'
+        - action: expect_url
+          value: /dashboard
+        - action: expect_text
+          selector: '.user-name'
+          value: "テストユーザー"
+        - action: expect_visible
+          selector: 'button:has-text("ログアウト")'
+
+  # ===================================================================
+  # 異常系: バリデーションエラー表示（E2E-004）
+  # ===================================================================
+  - id: E2E-004
+    name: バリデーションエラー表示（異常系）
+    category: 異常系
+    priority: high
+    description: 不正なデータ入力時にフロントエンドバリデーションが動作するフロー
+    test_file: tests/e2e/user-authentication/e2e-004.spec.ts
+
+    scenario: |
+      1. 登録ページ (/signup) にアクセス
+      2. 不正なデータを入力
+         - お名前: A（短すぎる）
+         - メールアドレス: invalid-email（無効な形式）
+         - パスワード: 123（短すぎる）
+         - パスワード確認: 456（不一致）
+      3. 「登録内容を確認」ボタンをクリック
+      4. バリデーションエラーが表示される
+      5. ページ遷移しない（/signup のまま）
+      6. フォームデータは保持される
+
+    expected_results:
+      - ページ遷移なし: /signup に留まる
+      - エラーメッセージ表示:
+        - "お名前は2文字以上で入力してください。"
+        - "有効なメールアドレスを入力してください。"
+        - "パスワードは8文字以上で入力してください。"
+        - "パスワードが一致しません。"
+      - 入力値保持: 不正なデータも画面に残る
+
+    playwright:
+      steps:
+        - action: goto
+          url: /signup
+        - action: fill
+          selector: 'input[name="name"]'
+          value: "A"
+        - action: fill
+          selector: 'input[name="email"]'
+          value: "invalid-email"
+        - action: fill
+          selector: 'input[name="password"]'
+          value: "123"
+        - action: fill
+          selector: 'input[name="password_confirmation"]'
+          value: "456"
+        - action: click
+          selector: 'button:has-text("登録内容を確認")'
+        - action: expect_url
+          value: /signup
+        - action: expect_visible
+          selector: '.form-error:has-text("2文字以上")'
+        - action: expect_visible
+          selector: '.form-error:has-text("有効なメールアドレス")'
+        - action: expect_visible
+          selector: '.form-error:has-text("8文字以上")'
+        - action: expect_visible
+          selector: '.form-error:has-text("一致しません")'
+
+  # ===================================================================
+  # 異常系: ログイン失敗（E2E-005）
+  # ===================================================================
+  - id: E2E-005
+    name: ログイン失敗（異常系）
+    category: 異常系
+    priority: high
+    description: 誤った認証情報でログインできないことを確認
+    test_file: tests/e2e/user-authentication/e2e-005.spec.ts
+
+    scenario: |
+      1. ログインページ (/login) にアクセス
+      2. 誤った認証情報を入力
+         - メールアドレス: nonexistent@example.com
+         - パスワード: WrongPassword123!
+      3. 「ログイン」ボタンをクリック
+      4. エラーメッセージが表示される
+      5. ページ遷移しない（/login のまま）
+
+    expected_results:
+      - ページ遷移なし: /login に留まる
+      - エラーメッセージ: "メールアドレスまたはパスワードが正しくありません。"
+      - セッション未確立: ログイン状態にならない
+
+    playwright:
+      steps:
+        - action: goto
+          url: /login
+        - action: fill
+          selector: 'input[name="email"]'
+          value: "nonexistent@example.com"
+        - action: fill
+          selector: 'input[name="password"]'
+          value: "WrongPassword123!"
+        - action: click
+          selector: 'button:has-text("ログイン")'
+        - action: expect_url
+          value: /login
+        - action: expect_text
+          selector: '.alert-error'
+          value: "メールアドレスまたはパスワードが正しくありません"
+
+# ===================================================================
+# 作成手順:
+# ===================================================================
+# 1. design.md の「画面遷移図」を確認
+# 2. 主要なユーザーストーリーを抽出:
+#    - 新規登録
+#    - ログイン
+#    - ログアウト
+#    - パスワードリセット
+#    - データ作成・編集・削除
+# 3. 各ストーリーに対して正常系・異常系のテストを作成
+# 4. scenario に日本語でステップを記述
+# 5. playwright セクションに実装詳細を記述
+# 6. 正常系30-40%、異常系60-70%の比率を意識
+
+# ===================================================================
+# テスト比率の例:
+# ===================================================================
+# 正常系（30-40%）:
+#   - E2E-001: ユーザー登録フロー
+#   - E2E-002: ログイン・ダッシュボード表示
+#   - E2E-003: ログアウト
+#
+# 異常系（60-70%）:
+#   - E2E-004: バリデーションエラー表示
+#   - E2E-005: ログイン失敗
+#   - E2E-006: 重複メールアドレス登録エラー
+#   - E2E-007: 認証エラー（未ログインで保護ページアクセス）

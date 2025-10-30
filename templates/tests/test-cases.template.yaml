@@ -1,0 +1,79 @@
+# テストケース定義（メタ情報）テンプレート
+#
+# 使い方:
+#   1. 新しいspec用のtestsディレクトリを作成
+#   2. このテンプレートをコピーして test-cases.yaml として保存
+#   3. spec_name を実際のspec名に変更
+#   4. 他のYAMLファイル（unit-tests.yaml等）を作成
+#
+# 配置場所:
+#   dev-kit/docs/specs/{SPEC_NAME}/tests/test-cases.yaml
+
+# ===================================================================
+# メタ情報
+# ===================================================================
+spec_name: {SPEC_NAME}  # ← ここを実際のspec名に変更（例: user-authentication）
+version: "1.0"
+created_at: "2025-10-30"  # ← 作成日を記入
+updated_at: "2025-10-30"  # ← 最終更新日を記入
+
+# ===================================================================
+# テスト比率の定義
+# ===================================================================
+# TDD のベストプラクティスに基づく
+test_ratio:
+  normal: 30-40%      # 正常系テスト
+  error: 60-70%       # 異常系・境界値・エッジケーステスト
+
+# ===================================================================
+# テストファイルの参照
+# ===================================================================
+test_files:
+  unit_tests: ./unit-tests.yaml          # 単体テスト（Domain/Application層）
+  feature_tests: ./feature-tests.yaml    # 統合テスト（Presentation層）
+  e2e_tests: ./e2e-tests.yaml            # E2Eテスト（ユーザーシナリオ）
+
+# ===================================================================
+# 自動生成コマンド
+# ===================================================================
+generators:
+  phpunit: "npm run generate:tests {SPEC_NAME}"       # PHPUnitテストスケルトン生成
+  playwright: "npm run generate:e2e {SPEC_NAME}"      # Playwright E2Eテスト生成
+
+# ===================================================================
+# テスト実行コマンド
+# ===================================================================
+test_commands:
+  unit: "./vendor/bin/sail artisan test --testsuite=Unit"
+  feature: "./vendor/bin/sail artisan test --testsuite=Feature"
+  e2e: "npm run test:e2e tests/e2e/{SPEC_NAME}/"
+  all: "./vendor/bin/sail artisan test && npm run test:e2e tests/e2e/{SPEC_NAME}/"
+
+# ===================================================================
+# テストカバレッジ目標
+# ===================================================================
+coverage_goals:
+  unit_tests: 100%        # Domain/Application層は100%カバレッジ
+  feature_tests: 90%      # Presentation層は90%以上
+  e2e_tests: 主要フロー全て  # すべての主要ユーザーフローをカバー
+
+# ===================================================================
+# 備考
+# ===================================================================
+notes: |
+  - design.md を Single Source of Truth として、すべてのテストケースを作成
+  - テスト作成順序: unit-tests.yaml → feature-tests.yaml → e2e-tests.yaml
+  - 実装前にテストを生成し、TDD サイクル（Red → Green → Refactor）に従う
+  - 各YAMLファイルのテンプレートは dev-kit/templates/tests/ を参照
+
+# ===================================================================
+# 次のステップ
+# ===================================================================
+# 1. dev-kit/templates/tests/unit-tests.template.yaml をコピーして unit-tests.yaml を作成
+# 2. dev-kit/templates/tests/feature-tests.template.yaml をコピーして feature-tests.yaml を作成
+# 3. dev-kit/templates/tests/e2e-tests.template.yaml をコピーして e2e-tests.yaml を作成
+# 4. design.md を基に各YAMLファイルを記入
+# 5. npm run generate:tests {SPEC_NAME} でPHPUnitテストスケルトン生成
+# 6. npm run generate:e2e {SPEC_NAME} でPlaywrightテスト生成
+# 7. Red状態を確認（すべてのテストが失敗する）
+# 8. 実装を開始（Green を目指す）

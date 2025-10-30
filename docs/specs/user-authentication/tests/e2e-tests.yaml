@@ -1,0 +1,70 @@
+# E2Eテストケース定義
+# Playwright Tests (ブラウザテスト)
+
+e2e_tests:
+  - id: E2E-001
+    name: ユーザー登録フロー
+    category: 正常系
+    description: 新規ユーザーが3ステップで正常に登録できることを確認
+    scenario: |
+      1. 登録ページにアクセス
+      2. ユーザー情報を入力（名前、メール、電話、パスワード、利用規約同意）
+      3. 登録内容確認ページに遷移
+      4. 入力内容が正しく表示されることを確認
+      5. 登録を完了
+      6. 登録完了メッセージを確認
+    test_file: tests/E2E/user-authentication/e2e-001.spec.ts
+
+  - id: E2E-002
+    name: ログイン・ダッシュボード表示
+    category: 正常系
+    description: ログインが成功してダッシュボードにユーザー名が表示されることを確認
+    preparation:
+      - テストユーザーを作成
+      - ログアウトして初期状態に戻す
+    scenario: |
+      1. ログインページにアクセス
+      2. ログイン情報を入力
+      3. ログインボタンをクリック
+      4. ダッシュボードに遷移することを確認
+      5. ダッシュボードのメッセージが表示されることを確認
+    test_file: tests/E2E/user-authentication/e2e-002.spec.ts
+
+  - id: E2E-003
+    name: ログアウト・セッション無効化
+    category: 正常系
+    description: ログアウト後にセッションが無効化されることを確認
+    preparation:
+      - テストユーザーを作成してログイン
+      - ダッシュボードに移動
+    scenario: |
+      1. ダッシュボードにいることを確認
+      2. ユーザーメニューを開く
+      3. ログアウトボタンをクリック
+      4. ログインページにリダイレクトされることを確認
+      5. セッションが無効化されたことを確認（/dashboardにアクセスして/loginにリダイレクト）
+    test_file: tests/E2E/user-authentication/e2e-003.spec.ts
+
+  - id: E2E-004
+    name: バリデーションエラー表示
+    category: 異常系
+    description: フロントエンドバリデーションが正常に動作することを確認
+    scenario: |
+      1. 登録ページにアクセス
+      2. 不正なデータを入力（名前1文字、無効なメール、短いパスワード、不一致確認）
+      3. 登録内容を確認ボタンをクリック
+      4. バリデーションエラーが表示されることを確認
+      5. ページ遷移しないことを確認
+    test_file: tests/E2E/user-authentication/e2e-004.spec.ts
+
+  - id: E2E-005
+    name: ログイン失敗
+    category: 異常系
+    description: 誤った認証情報でログインできないことを確認
+    scenario: |
+      1. ログインページにアクセス
+      2. 誤った認証情報を入力（存在しないメール、誤ったパスワード）
+      3. ログインボタンをクリック
+      4. エラーメッセージが表示されることを確認
+      5. ページ遷移しないことを確認
+    test_file: tests/E2E/user-authentication/e2e-005.spec.ts

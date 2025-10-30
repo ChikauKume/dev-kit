@@ -1,0 +1,149 @@
+# 単体テストケース定義テンプレート
+# PHPUnit Unit Tests (Domain/Application層のテスト)
+#
+# 使い方:
+#   1. design.md の「バリデーションルール」セクションを参照
+#   2. 各UseCaseに対してテストケースを定義
+#   3. パラメータのstatesは design.md のルールに基づいて作成
+#
+# 注意:
+#   - テスト比率: 正常系 30-40%, 異常系・境界値 60-70%
+#   - 各stateには必ず description を記載
+
+# ===================================================================
+# テンプレート例: ユーザー登録 (RegisterUser UseCase)
+# ===================================================================
+register_user:  # UseCase名（スネークケース）
+  use_case: RegisterUser  # UseCaseクラス名（PascalCase）
+  module: User  # モジュール名（PascalCase）
+
+  # パラメータ定義（design.mdのフォーム定義から転記）
+  parameters:
+    - name: name
+      type: string
+      description: ユーザー名
+    - name: email
+      type: string
+      description: メールアドレス
+    - name: password
+      type: string
+      description: パスワード
+    - name: password_confirmation
+      type: string
+      description: パスワード確認
+    - name: terms_agreed
+      type: boolean
+      description: 利用規約同意
+
+  # 各パラメータのテスト状態定義
+  # design.md の「バリデーションルール」から作成
+  states:
+    # ===================================================================
+    # name フィールドのテスト状態
+    # ===================================================================
+    name:
+      # 正常系（30-40%）
+      valid_short: { value: "山田", length: 2, description: "最小値（2文字）" }
+      valid_normal: { value: "山田太郎", length: 10, description: "通常値（10文字）" }
+      valid_long: { length: 255, description: "最大値（255文字のランダム文字列）" }
+
+      # 異常系・境界値（60-70%）
+      too_long: { length: 256, description: "長さ超過（256文字）" }
+      empty: { value: "", description: "空文字" }
+      "null": { value: null, description: "null値" }
+      only_spaces: { value: "   ", description: "スペースのみ" }
+      with_special_chars: { value: "山田@太郎!", description: "特殊文字含む" }
+
+    # ===================================================================
+    # email フィールドのテスト状態
+    # ===================================================================
+    email:
+      # 正常系
+      unique_valid: { value: "test@example.com", unique: true, description: "未使用の有効なメール" }
+
+      # 異常系・境界値
+      duplicate: { value: "existing@example.com", unique: false, description: "既に登録済み（uniqueルール違反）" }
+      invalid_no_at: { value: "invalidemail.com", description: "@なし（formatエラー）" }
+      invalid_no_domain: { value: "test@", description: "ドメインなし" }
+      invalid_no_local: { value: "@example.com", description: "ローカル部なし" }
+      with_space: { value: "test @example.com", description: "スペース含む" }
+      empty: { value: "", description: "空文字（requiredエラー）" }
+      "null": { value: null, description: "null値" }
+
+    # ===================================================================
+    # password フィールドのテスト状態
+    # ===================================================================
+    password:
+      # 正常系
+      valid_min: { value: "pass1234", length: 8, description: "最小値（8文字）" }
+      valid_normal: { value: "password1234", length: 12, description: "通常値（12文字）" }
+
+      # 異常系・境界値
+      too_short: { value: "pass123", length: 7, description: "長さ不足（7文字）" }
+      empty: { value: "", description: "空文字" }
+      "null": { value: null, description: "null値" }
+      only_spaces: { value: "        ", description: "スペースのみ（8文字だが無効）" }
+
+    # ===================================================================
+    # password_confirmation フィールドのテスト状態
+    # ===================================================================
+    password_confirmation:
+      # 正常系
+      matching: { value: "password1234", matches_password: true, description: "パスワードと一致" }
+
+      # 異常系
+      not_matching: { value: "different1234", matches_password: false, description: "パスワードと不一致（sameエラー）" }
+      empty: { value: "", description: "空文字" }
+      "null": { value: null, description: "null値" }
+
+    # ===================================================================
+    # terms_agreed フィールドのテスト状態（boolean）
+    # ===================================================================
+    terms_agreed:
+      # 正常系
+      accepted: { value: true, description: "同意済み" }
+
+      # 異常系
+      not_accepted: { value: false, description: "未同意（acceptedエラー）" }
+      "null": { value: null, description: "null値" }
+
+# ===================================================================
+# 作成手順:
+# ===================================================================
+# 1. design.md の「バリデーションルール」セクションを開く
+# 2. 各フィールドのルールを確認:
+#    - required → empty, null のテストを追加
+#    - email → invalid_*, empty のテストを追加
+#    - unique → duplicate のテストを追加
+#    - min:8 → too_short のテストを追加
+#    - max:255 → too_long のテストを追加
+#    - same:password → not_matching のテストを追加
+#    - accepted → not_accepted のテストを追加
+# 3. 正常系30-40%、異常系60-70%の比率を意識
+# 4. 各stateには必ず description を記載（日本語でOK）
+
+# ===================================================================
+# テンプレート2: 別のUseCase例
+# ===================================================================
+# login_user:
+#   use_case: LoginUser
+#   module: User
+#
+#   parameters:
+#     - name: email
+#       type: string
+#       description: メールアドレス
+#     - name: password
+#       type: string
+#       description: パスワード
+#
+#   states:
+#     email:
+#       valid: { value: "user@example.com", description: "有効なメール" }
+#       invalid: { value: "invalid", description: "無効なメール" }
+#       empty: { value: "", description: "空文字" }
+#
+#     password:
+#       valid: { value: "password123", description: "有効なパスワード" }
+#       wrong: { value: "wrongpass", description: "誤ったパスワード" }
+#       empty: { value: "", description: "空文字" }
