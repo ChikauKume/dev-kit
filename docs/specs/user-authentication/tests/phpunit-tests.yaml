@@ -1,0 +1,996 @@
+spec_name: user-authentication
+test_type: phpunit
+framework: phpunit
+
+# UseCase定義
+usecases:
+  - name: RegisterUser
+    class: App\Modules\User\Application\UseCases\RegisterUser
+    description: ユーザー登録UseCase
+    parameters:
+      - name: name
+        type: string
+        validations:
+          - required
+          - min:2
+          - max:255
+      - name: email
+        type: string
+        validations:
+          - required
+          - email
+          - unique:users,email
+          - max:255
+      - name: phone
+        type: string
+        nullable: true
+        validations:
+          - regex:/^0\d{9,10}$/
+      - name: password
+        type: string
+        validations:
+          - required
+          - min:8
+          - max:255
+          - regex:/^(?=.*[A-Za-z])(?=.*\d).+$/
+      - name: password_confirmation
+        type: string
+        validations:
+          - required
+          - same:password
+      - name: agreeToTerms
+        type: boolean
+        validations:
+          - required
+          - accepted
+
+  - name: LoginUser
+    class: App\Modules\User\Application\UseCases\LoginUser
+    description: ログインUseCase
+    parameters:
+      - name: email
+        type: string
+        validations:
+          - required
+          - email
+      - name: password
+        type: string
+        validations:
+          - required
+
+  - name: LogoutUser
+    class: App\Modules\User\Application\UseCases\LogoutUser
+    description: ログアウトUseCase
+    parameters: []
+
+# Unitテストケース
+unit_tests:
+  - suite: Domain/ValueObjects/Email
+    description: Emailバリューオブジェクトのテスト
+    tests:
+      - name: 正常なメールアドレスでEmailオブジェクトが生成できる
+        category: normal
+        input:
+          email: "test@example.com"
+        expected: success
+        assertion: Emailオブジェクトが生成され、getValueで取得できる
+
+      - name: 不正なメールアドレスでInvalidEmailExceptionがスローされる
+        category: error
+        input:
+          email: "invalid-email"
+        expected: InvalidEmailException
+        assertion: InvalidEmailExceptionがスローされる
+
+      - name: 空文字のメールアドレスでInvalidEmailExceptionがスローされる
+        category: error
+        input:
+          email: ""
+        expected: InvalidEmailException
+        assertion: InvalidEmailExceptionがスローされる
+
+      - name: nullのメールアドレスでInvalidEmailExceptionがスローされる
+        category: error
+        input:
+          email: null
+        expected: InvalidEmailException
+        assertion: InvalidEmailExceptionがスローされる
+
+  - suite: Domain/ValueObjects/Phone
+    description: Phoneバリューオブジェクトのテスト
+    tests:
+      - name: 正常な電話番号でPhoneオブジェクトが生成できる（10桁）
+        category: normal
+        input:
+          phone: "0312345678"
+        expected: success
+        assertion: Phoneオブジェクトが生成され、getValueで取得できる
+
+      - name: 正常な電話番号でPhoneオブジェクトが生成できる（11桁）
+        category: normal
+        input:
+          phone: "09012345678"
+        expected: success
+        assertion: Phoneオブジェクトが生成され、getValueで取得できる
+
+      - name: nullの電話番号でPhoneオブジェクトが生成できる（任意項目）
+        category: normal
+        input:
+          phone: null
+        expected: success
+        assertion: Phoneオブジェクトが生成され、getValueでnullが返る
+
+      - name: 0で始まらない電話番号でInvalidPhoneExceptionがスローされる
+        category: error
+        input:
+          phone: "1234567890"
+        expected: InvalidPhoneException
+        assertion: InvalidPhoneExceptionがスローされる
+
+      - name: 9桁以下の電話番号でInvalidPhoneExceptionがスローされる
+        category: error
+        input:
+          phone: "012345678"
+        expected: InvalidPhoneException
+        assertion: InvalidPhoneExceptionがスローされる
+
+      - name: 12桁以上の電話番号でInvalidPhoneExceptionがスローされる
+        category: error
+        input:
+          phone: "012345678901"
+        expected: InvalidPhoneException
+        assertion: InvalidPhoneExceptionがスローされる
+
+      - name: ハイフン付き電話番号でInvalidPhoneExceptionがスローされる
+        category: error
+        input:
+          phone: "090-1234-5678"
+        expected: InvalidPhoneException
+        assertion: InvalidPhoneExceptionがスローされる（ハイフンは禁止）
+
+      - name: 全角数字の電話番号でInvalidPhoneExceptionがスローされる
+        category: error
+        input:
+          phone: "０９０１２３４５６７８"
+        expected: InvalidPhoneException
+        assertion: InvalidPhoneExceptionがスローされる（半角数字のみ許可）
+
+  - suite: Domain/ValueObjects/Name
+    description: Nameバリューオブジェクトのテスト
+    tests:
+      - name: 正常な名前（2文字）でNameオブジェクトが生成できる
+        category: normal
+        input:
+          name: "山田"
+        expected: success
+        assertion: Nameオブジェクトが生成され、getValueで取得できる
+
+      - name: 正常な名前（255文字）でNameオブジェクトが生成できる
+        category: normal
+        input:
+          name: "あ" * 255
+        expected: success
+        assertion: Nameオブジェクトが生成され、getValueで取得できる
+
+      - name: スペース付き名前でNameオブジェクトが生成できる
+        category: normal
+        input:
+          name: "山田 太郎"
+        expected: success
+        assertion: Nameオブジェクトが生成され、getValueで取得できる
+
+      - name: 1文字の名前でInvalidNameExceptionがスローされる
+        category: error
+        input:
+          name: "A"
+        expected: InvalidNameException
+        assertion: InvalidNameExceptionがスローされる（最小2文字）
+
+      - name: 256文字以上の名前でInvalidNameExceptionがスローされる
+        category: error
+        input:
+          name: "あ" * 256
+        expected: InvalidNameException
+        assertion: InvalidNameExceptionがスローされる（最大255文字）
+
+      - name: 空文字の名前でInvalidNameExceptionがスローされる
+        category: error
+        input:
+          name: ""
+        expected: InvalidNameException
+        assertion: InvalidNameExceptionがスローされる
+
+      - name: nullの名前でInvalidNameExceptionがスローされる
+        category: error
+        input:
+          name: null
+        expected: InvalidNameException
+        assertion: InvalidNameExceptionがスローされる
+
+  - suite: Domain/ValueObjects/HashedPassword
+    description: HashedPasswordバリューオブジェクトのテスト
+    tests:
+      - name: 8文字以上のパスワードでHashedPasswordが生成できる
+        category: normal
+        input:
+          password: "Password123!"
+        expected: success
+        assertion: HashedPasswordオブジェクトが生成され、ハッシュ化されている
+
+      - name: 7文字以下のパスワードでWeakPasswordExceptionがスローされる
+        category: error
+        input:
+          password: "Pass1"
+        expected: WeakPasswordException
+        assertion: WeakPasswordExceptionがスローされる
+
+      - name: 英字のみのパスワードでWeakPasswordExceptionがスローされる
+        category: error
+        input:
+          password: "Password"
+        expected: WeakPasswordException
+        assertion: WeakPasswordExceptionがスローされる（英字と数字の両方が必要）
+
+      - name: 数字のみのパスワードでWeakPasswordExceptionがスローされる
+        category: error
+        input:
+          password: "12345678"
+        expected: WeakPasswordException
+        assertion: WeakPasswordExceptionがスローされる（英字と数字の両方が必要）
+
+      - name: 空文字のパスワードでWeakPasswordExceptionがスローされる
+        category: error
+        input:
+          password: ""
+        expected: WeakPasswordException
+        assertion: WeakPasswordExceptionがスローされる
+
+  - suite: Domain/Entities/User
+    description: Userエンティティのテスト
+    tests:
+      - name: 有効なデータでUserエンティティが生成できる
+        category: normal
+        input:
+          id: 1
+          name: "山田 太郎"
+          email: "test@example.com"
+          phone: "08012345678"
+          role: "user"
+        expected: success
+        assertion: Userエンティティが生成され、各メソッドで値が取得できる
+
+      - name: isAdminメソッドでroleがadminの場合にtrueが返る
+        category: normal
+        input:
+          id: 1
+          name: "管理者"
+          email: "admin@example.com"
+          phone: null
+          role: "admin"
+        expected: success
+        assertion: isAdmin()がtrueを返す
+
+      - name: isAdminメソッドでroleがuserの場合にfalseが返る
+        category: normal
+        input:
+          id: 1
+          name: "一般ユーザー"
+          email: "user@example.com"
+          phone: null
+          role: "user"
+        expected: success
+        assertion: isAdmin()がfalseを返す
+
+      - name: phoneがnullの場合でもUserエンティティが生成できる
+        category: normal
+        input:
+          id: 1
+          name: "電話なし ユーザー"
+          email: "no-phone@example.com"
+          phone: null
+          role: "user"
+        expected: success
+        assertion: Userエンティティが生成され、getPhone()でnullが返る
+
+      - name: hasPhone()メソッドでphoneがある場合にtrueが返る
+        category: normal
+        input:
+          id: 1
+          name: "山田 太郎"
+          email: "test@example.com"
+          phone: "08012345678"
+          role: "user"
+        expected: success
+        assertion: hasPhone()がtrueを返す
+
+      - name: hasPhone()メソッドでphoneがnullの場合にfalseが返る
+        category: normal
+        input:
+          id: 1
+          name: "電話なし ユーザー"
+          email: "no-phone@example.com"
+          phone: null
+          role: "user"
+        expected: success
+        assertion: hasPhone()がfalseを返す
+
+  - suite: Application/UseCases/RegisterUser
+    description: RegisterUser UseCaseのテスト
+    tests:
+      - name: 有効なデータでユーザーが登録できる
+        category: normal
+        input:
+          name: "山田 太郎"
+          email: "test@example.com"
+          phone: "08012345678"
+          password: "Password123!"
+          password_confirmation: "Password123!"
+          agreeToTerms: true
+        expected: success
+        assertion: ユーザーが作成され、roleがuserとなる
+
+      - name: 電話番号なしでユーザーが登録できる
+        category: normal
+        input:
+          name: "田中 花子"
+          email: "tanaka@example.com"
+          phone: null
+          password: "Password123!"
+          password_confirmation: "Password123!"
+          agreeToTerms: true
+        expected: success
+        assertion: ユーザーが作成され、phoneがnullとなる
+
+      - name: メールアドレス重複でValidationExceptionがスローされる
+        category: error
+        setup:
+          - create_user:
+              email: "duplicate@example.com"
+              password: "Password123!"
+        input:
+          name: "田中 次郎"
+          email: "duplicate@example.com"
+          phone: "09012345678"
+          password: "Password123!"
+          password_confirmation: "Password123!"
+          agreeToTerms: true
+        expected: ValidationException
+        assertion: ValidationExceptionがスローされ、emailフィールドにエラーがある
+
+      - name: 名前が2文字未満でValidationExceptionがスローされる
+        category: error
+        input:
+          name: "A"
+          email: "test@example.com"
+          phone: null
+          password: "Password123!"
+          password_confirmation: "Password123!"
+          agreeToTerms: true
+        expected: ValidationException
+        assertion: ValidationExceptionがスローされ、nameフィールドにエラーがある
+
+      - name: 名前が255文字超過でValidationExceptionがスローされる
+        category: error
+        input:
+          name: "あ" * 256
+          email: "test@example.com"
+          phone: null
+          password: "Password123!"
+          password_confirmation: "Password123!"
+          agreeToTerms: true
+        expected: ValidationException
+        assertion: ValidationExceptionがスローされ、nameフィールドにエラーがある
+
+      - name: メールアドレスが不正な形式でValidationExceptionがスローされる
+        category: error
+        input:
+          name: "山田 太郎"
+          email: "invalid-email"
+          phone: null
+          password: "Password123!"
+          password_confirmation: "Password123!"
+          agreeToTerms: true
+        expected: ValidationException
+        assertion: ValidationExceptionがスローされ、emailフィールドにエラーがある
+
+      - name: 電話番号が不正な形式でValidationExceptionがスローされる
+        category: error
+        input:
+          name: "山田 太郎"
+          email: "test@example.com"
+          phone: "12345"
+          password: "Password123!"
+          password_confirmation: "Password123!"
+          agreeToTerms: true
+        expected: ValidationException
+        assertion: ValidationExceptionがスローされ、phoneフィールドにエラーがある
+
+      - name: パスワードが8文字未満でValidationExceptionがスローされる
+        category: error
+        input:
+          name: "山田 太郎"
+          email: "test@example.com"
+          phone: null
+          password: "Pass1"
+          password_confirmation: "Pass1"
+          agreeToTerms: true
+        expected: ValidationException
+        assertion: ValidationExceptionがスローされ、passwordフィールドにエラーがある
+
+      - name: パスワードに英字が含まれない場合にValidationExceptionがスローされる
+        category: error
+        input:
+          name: "山田 太郎"
+          email: "test@example.com"
+          phone: null
+          password: "12345678"
+          password_confirmation: "12345678"
+          agreeToTerms: true
+        expected: ValidationException
+        assertion: ValidationExceptionがスローされ、passwordフィールドにエラーがある
+
+      - name: パスワードに数字が含まれない場合にValidationExceptionがスローされる
+        category: error
+        input:
+          name: "山田 太郎"
+          email: "test@example.com"
+          phone: null
+          password: "Password"
+          password_confirmation: "Password"
+          agreeToTerms: true
+        expected: ValidationException
+        assertion: ValidationExceptionがスローされ、passwordフィールドにエラーがある
+
+      - name: パスワード確認が一致しない場合にValidationExceptionがスローされる
+        category: error
+        input:
+          name: "山田 太郎"
+          email: "test@example.com"
+          phone: null
+          password: "Password123!"
+          password_confirmation: "Different123!"
+          agreeToTerms: true
+        expected: ValidationException
+        assertion: ValidationExceptionがスローされ、password_confirmationフィールドにエラーがある
+
+      - name: 利用規約に同意していない場合にValidationExceptionがスローされる
+        category: error
+        input:
+          name: "山田 太郎"
+          email: "test@example.com"
+          phone: null
+          password: "Password123!"
+          password_confirmation: "Password123!"
+          agreeToTerms: false
+        expected: ValidationException
+        assertion: ValidationExceptionがスローされ、agreeToTermsフィールドにエラーがある
+
+  - suite: Application/UseCases/LoginUser
+    description: LoginUser UseCaseのテスト
+    tests:
+      - name: 正しい認証情報でログインできる
+        category: normal
+        setup:
+          - create_user:
+              email: "test@example.com"
+              password: "Password123!"
+        input:
+          email: "test@example.com"
+          password: "Password123!"
+        expected: success
+        assertion: ログインが成功し、Userエンティティが返される
+
+      - name: メールアドレスが存在しない場合にAuthenticationExceptionがスローされる
+        category: error
+        input:
+          email: "nonexistent@example.com"
+          password: "Password123!"
+        expected: AuthenticationException
+        assertion: AuthenticationExceptionがスローされる
+
+      - name: パスワードが誤っている場合にAuthenticationExceptionがスローされる
+        category: error
+        setup:
+          - create_user:
+              email: "test@example.com"
+              password: "Password123!"
+        input:
+          email: "test@example.com"
+          password: "WrongPassword123!"
+        expected: AuthenticationException
+        assertion: AuthenticationExceptionがスローされる
+
+      - name: メールアドレスが空の場合にValidationExceptionがスローされる
+        category: error
+        input:
+          email: ""
+          password: "Password123!"
+        expected: ValidationException
+        assertion: ValidationExceptionがスローされ、emailフィールドにエラーがある
+
+      - name: パスワードが空の場合にValidationExceptionがスローされる
+        category: error
+        input:
+          email: "test@example.com"
+          password: ""
+        expected: ValidationException
+        assertion: ValidationExceptionがスローされ、passwordフィールドにエラーがある
+
+  - suite: Application/UseCases/LogoutUser
+    description: LogoutUser UseCaseのテスト
+    tests:
+      - name: ログアウトが正常に実行できる
+        category: normal
+        setup:
+          - login_user:
+              email: "test@example.com"
+              password: "Password123!"
+        expected: success
+        assertion: ログアウトが成功し、セッションが破棄される
+
+# Featureテストケース
+feature_tests:
+  - suite: Presentation/Controllers/AuthController
+    method: signup
+    description: 新規登録処理のテスト
+    tests:
+      - name: 有効な登録データで確認画面に遷移できる
+        category: normal
+        request:
+          method: POST
+          url: /signup
+          data:
+            name: "山田 太郎"
+            email: "test@example.com"
+            phone: "08012345678"
+            password: "Password123!"
+            password_confirmation: "Password123!"
+            agreeToTerms: true
+        expected:
+          status: 302
+          redirect: /signup/confirm
+          session:
+            - signupName
+            - signupEmail
+            - signupPhone
+            - signupPassword
+        assertion: セッションに登録データが保存され、確認画面にリダイレクトされる
+
+      - name: 電話番号なしで確認画面に遷移できる
+        category: normal
+        request:
+          method: POST
+          url: /signup
+          data:
+            name: "田中 花子"
+            email: "tanaka@example.com"
+            phone: null
+            password: "Password123!"
+            password_confirmation: "Password123!"
+            agreeToTerms: true
+        expected:
+          status: 302
+          redirect: /signup/confirm
+          session:
+            - signupName
+            - signupEmail
+            - signupPassword
+        assertion: 電話番号がnullでも登録処理が進む
+
+      - name: バリデーションエラーで登録画面に戻る
+        category: error
+        request:
+          method: POST
+          url: /signup
+          data:
+            name: "A"
+            email: "invalid-email"
+            password: "123"
+            password_confirmation: "456"
+            agreeToTerms: false
+        expected:
+          status: 302
+          redirect: /signup
+          errors:
+            - name
+            - email
+            - password
+            - password_confirmation
+            - agreeToTerms
+        assertion: バリデーションエラーが発生し、登録画面にリダイレクトされる
+
+      - name: メールアドレス重複で登録画面に戻る
+        category: error
+        setup:
+          - create_user:
+              email: "duplicate@example.com"
+              password: "Password123!"
+        request:
+          method: POST
+          url: /signup
+          data:
+            name: "田中 次郎"
+            email: "duplicate@example.com"
+            phone: "09012345678"
+            password: "Password123!"
+            password_confirmation: "Password123!"
+            agreeToTerms: true
+        expected:
+          status: 302
+          redirect: /signup
+          errors:
+            - email
+        assertion: メールアドレス重複エラーが発生し、登録画面にリダイレクトされる
+
+  - suite: Presentation/Controllers/AuthController
+    method: signupConfirmView
+    description: 登録確認画面表示のテスト
+    tests:
+      - name: セッションデータから確認画面が表示される
+        category: normal
+        setup:
+          - set_session:
+              signupName: "山田 太郎"
+              signupEmail: "test@example.com"
+              signupPhone: "08012345678"
+        request:
+          method: GET
+          url: /signup/confirm
+        expected:
+          status: 200
+          view: signup/confirm
+          view_data:
+            - name: "山田 太郎"
+            - email: "test@example.com"
+            - phone: "08012345678"
+        assertion: 確認画面が表示され、セッションデータが渡される
+
+      - name: セッションデータがない場合に登録画面にリダイレクトされる
+        category: error
+        request:
+          method: GET
+          url: /signup/confirm
+        expected:
+          status: 302
+          redirect: /signup
+          flash:
+            error: "入力内容を確認してください"
+        assertion: セッションデータがない場合、登録画面にリダイレクトされる
+
+  - suite: Presentation/Controllers/AuthController
+    method: signupBack
+    description: 確認画面から登録画面に戻る処理のテスト
+    tests:
+      - name: セッションデータを保持して登録画面に戻る
+        category: normal
+        setup:
+          - set_session:
+              signupName: "山田 太郎"
+              signupEmail: "test@example.com"
+              signupPhone: "08012345678"
+        request:
+          method: POST
+          url: /signup/back
+        expected:
+          status: 302
+          redirect: /signup
+          session_old:
+            - name: "山田 太郎"
+            - email: "test@example.com"
+            - phone: "08012345678"
+        assertion: 登録画面にリダイレクトされ、入力データがoldセッションに保存される
+
+      - name: パスワードは保持せずに登録画面に戻る
+        category: normal
+        setup:
+          - set_session:
+              signupName: "佐藤 花子"
+              signupEmail: "hanako@example.com"
+              signupPassword: "$2y$10$HashedPasswordExample"
+        request:
+          method: POST
+          url: /signup/back
+        expected:
+          status: 302
+          redirect: /signup
+          session_old:
+            - name: "佐藤 花子"
+            - email: "hanako@example.com"
+          session_missing:
+            - password
+            - password_confirmation
+        assertion: パスワードはoldセッションに含まれない（セキュリティ）
+
+  - suite: Presentation/Controllers/AuthController
+    method: signupConfirm
+    description: 登録確定処理のテスト
+    tests:
+      - name: セッションデータからユーザーが作成される
+        category: normal
+        setup:
+          - set_session:
+              signupName: "山田 太郎"
+              signupEmail: "test@example.com"
+              signupPhone: "08012345678"
+              signupPassword: "$2y$10$HashedPasswordExample"
+        request:
+          method: POST
+          url: /signup/confirm
+        expected:
+          status: 302
+          redirect: /signup/complete
+          authenticated: true
+          database_records:
+            - table: users
+              conditions:
+                email: "test@example.com"
+                name: "山田 太郎"
+                phone: "08012345678"
+        assertion: ユーザーが作成され、自動ログインし、完了画面にリダイレクトされる
+
+      - name: セッションデータがない場合にエラーが発生する
+        category: error
+        request:
+          method: POST
+          url: /signup/confirm
+        expected:
+          status: 302
+          redirect: /signup
+          errors:
+            - message: "登録データが見つかりません"
+        assertion: セッションデータがない場合、登録画面にリダイレクトされる
+
+  - suite: Presentation/Controllers/AuthController
+    method: login
+    description: ログイン処理のテスト
+    tests:
+      - name: 正しい認証情報でログインできる
+        category: normal
+        setup:
+          - create_user:
+              email: "test@example.com"
+              password: "Password123!"
+        request:
+          method: POST
+          url: /login
+          data:
+            email: "test@example.com"
+            password: "Password123!"
+        expected:
+          status: 302
+          redirect: /dashboard
+          authenticated: true
+        assertion: ログインが成功し、ダッシュボードにリダイレクトされる
+
+      - name: 誤った認証情報でログイン失敗する
+        category: error
+        request:
+          method: POST
+          url: /login
+          data:
+            email: "nonexistent@example.com"
+            password: "WrongPassword123!"
+        expected:
+          status: 302
+          redirect: /login
+          errors:
+            - email
+          database_records:
+            - table: failed_login_attempts
+              conditions:
+                email: "nonexistent@example.com"
+        assertion: ログインが失敗し、ログイン画面にリダイレクトされ、失敗ログが記録される
+
+      - name: 存在するメールアドレスで誤ったパスワードの場合にログイン失敗する
+        category: error
+        setup:
+          - create_user:
+              email: "test@example.com"
+              password: "Password123!"
+        request:
+          method: POST
+          url: /login
+          data:
+            email: "test@example.com"
+            password: "WrongPassword123!"
+        expected:
+          status: 302
+          redirect: /login
+          errors:
+            - email
+          database_records:
+            - table: failed_login_attempts
+              conditions:
+                email: "test@example.com"
+        assertion: ログインが失敗し、ログイン画面にリダイレクトされ、失敗ログが記録される
+
+      - name: バリデーションエラーでログイン画面に戻る
+        category: error
+        request:
+          method: POST
+          url: /login
+          data:
+            email: ""
+            password: ""
+        expected:
+          status: 302
+          redirect: /login
+          errors:
+            - email
+            - password
+        assertion: バリデーションエラーが発生し、ログイン画面にリダイレクトされる
+
+  - suite: Presentation/Controllers/AuthController
+    method: logout
+    description: ログアウト処理のテスト
+    tests:
+      - name: ログアウトが正常に実行できる
+        category: normal
+        setup:
+          - create_user:
+              email: "test@example.com"
+              password: "Password123!"
+          - login_user:
+              email: "test@example.com"
+              password: "Password123!"
+        request:
+          method: POST
+          url: /logout
+        expected:
+          status: 302
+          redirect: /login
+          authenticated: false
+        assertion: ログアウトが成功し、セッションが破棄され、ログイン画面にリダイレクトされる
+
+  - suite: Presentation/Middleware/GuestMiddleware
+    description: Guestミドルウェアのテスト（認証済みユーザーのアクセス制御）
+    tests:
+      - name: 未認証ユーザーは通過できる
+        category: normal
+        request:
+          method: GET
+          url: /login
+        expected:
+          status: 200
+        assertion: 未認証ユーザーはログイン画面にアクセスできる
+
+      - name: 認証済みユーザーはログイン画面にアクセスできずダッシュボードにリダイレクトされる
+        category: normal
+        setup:
+          - create_user:
+              email: "test@example.com"
+              password: "Password123!"
+          - login_user:
+              email: "test@example.com"
+              password: "Password123!"
+        request:
+          method: GET
+          url: /login
+        expected:
+          status: 302
+          redirect: /dashboard
+        assertion: 認証済みユーザーはダッシュボードにリダイレクトされる
+
+      - name: 認証済みユーザーは登録画面にアクセスできずダッシュボードにリダイレクトされる
+        category: normal
+        setup:
+          - create_user:
+              email: "test@example.com"
+              password: "Password123!"
+          - login_user:
+              email: "test@example.com"
+              password: "Password123!"
+        request:
+          method: GET
+          url: /signup
+        expected:
+          status: 302
+          redirect: /dashboard
+        assertion: 認証済みユーザーはダッシュボードにリダイレクトされる
+
+  - suite: Presentation/Middleware/AuthMiddleware
+    description: Authミドルウェアのテスト（未認証ユーザーのアクセス制御）
+    tests:
+      - name: 認証済みユーザーは通過できる
+        category: normal
+        setup:
+          - create_user:
+              email: "test@example.com"
+              password: "Password123!"
+          - login_user:
+              email: "test@example.com"
+              password: "Password123!"
+        request:
+          method: GET
+          url: /dashboard
+        expected:
+          status: 200
+        assertion: 認証済みユーザーはダッシュボードにアクセスできる
+
+      - name: 未認証ユーザーはダッシュボードにアクセスできずログイン画面にリダイレクトされる
+        category: error
+        request:
+          method: GET
+          url: /dashboard
+        expected:
+          status: 302
+          redirect: /login
+        assertion: 未認証ユーザーはログイン画面にリダイレクトされる
+
+  - suite: Presentation/Controllers/DashboardController
+    description: DashboardControllerのテスト
+    tests:
+      - name: ダッシュボードが表示され、ユーザー名が渡される
+        category: normal
+        setup:
+          - create_user:
+              email: "test@example.com"
+              password: "Password123!"
+              name: "山田 太郎"
+          - login_user:
+              email: "test@example.com"
+              password: "Password123!"
+        request:
+          method: GET
+          url: /dashboard
+        expected:
+          status: 200
+          view: dashboard
+          view_data:
+            userName: "山田 太郎"
+        assertion: ダッシュボードが表示され、ログイン中のユーザー名が渡される
+
+      - name: 認証されていない場合はログイン画面にリダイレクトされる
+        category: error
+        request:
+          method: GET
+          url: /dashboard
+        expected:
+          status: 302
+          redirect: /login
+        assertion: 未認証ユーザーはログイン画面にリダイレクトされる
+
+  - suite: Infrastructure/Repositories/EloquentUserRepository
+    description: EloquentUserRepositoryのテスト
+    tests:
+      - name: findByEmailでユーザーが取得できる
+        category: normal
+        setup:
+          - create_user:
+              email: "test@example.com"
+              password: "Password123!"
+              name: "山田 太郎"
+        input:
+          email: "test@example.com"
+        expected: success
+        assertion: Userエンティティが返される
+
+      - name: findByEmailで存在しないユーザーの場合nullが返る
+        category: normal
+        input:
+          email: "nonexistent@example.com"
+        expected: null
+        assertion: nullが返される
+
+      - name: saveでユーザーが保存できる
+        category: normal
+        input:
+          user:
+            name: "田中 花子"
+            email: "tanaka@example.com"
+            phone: "09012345678"
+            password: "$2y$10$HashedPasswordExample"
+            role: "user"
+        expected: success
+        assertion: ユーザーがデータベースに保存される
+
+      - name: deleteでユーザーが削除できる
+        category: normal
+        setup:
+          - create_user:
+              email: "delete@example.com"
+              password: "Password123!"
+        input:
+          user_id: 1
+        expected: success
+        assertion: ユーザーがデータベースから削除される

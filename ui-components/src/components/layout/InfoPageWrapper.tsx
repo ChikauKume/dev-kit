@@ -48,6 +48,21 @@ interface InfoPageWrapperProps {
   onLogout?: () => void;
 
   /**
+   * ログイン中のユーザー名
+   *
+   * 右上のユーザーボタンに表示されます。
+   * デフォルト: "ゲスト"
+   *
+   * @example Laravel Controller
+   * ```php
+   * return Inertia::render('Dashboard', [
+   *   'userName' => auth()->user()->name
+   * ]);
+   * ```
+   */
+  userName?: string;
+
+  /**
    * 動的サイドバーメニューアイテム
    *
    * 【重要】ダッシュボード（ホーム）と設定は固定で、自動的に追加されます。
@@ -90,6 +105,7 @@ const InfoPageWrapper: React.FC<InfoPageWrapperProps> = ({
   currentPage,
   onNavigate,
   onLogout,
+  userName = 'ゲスト',
   sidebarMenuItems,
   unreadCount = 0,
   showNotificationDropdown = false,
@@ -363,7 +379,7 @@ const InfoPageWrapper: React.FC<InfoPageWrapperProps> = ({
                 onClick={() => setShowUserMenu(!showUserMenu)}
               >
                 <Icon name="user" className="w-5 h-5" />
-                <span>田中 太郎</span>
+                <span>{userName}</span>
                 <Icon name="chevron-down" className="w-4 h-4" />
               </button>
 

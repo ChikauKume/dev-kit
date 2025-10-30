@@ -1,146 +1,148 @@
-# backend-developer 実装指示書（コマンド実行ガイド）
+---
+agent: backend-developer
+phase: 2
+step: 4
+tdd_stage: green
+responsibility:
+  - Laravel/PHP/Clean Architecture実装
+  - Domain/Application/Infrastructure/Presentation 4層
+  - FormRequest/Repository/UseCase/Controller
+  - PHPUnitテストを通す最小限の実装
+forbidden:
+  - フロントエンド実装禁止
+  - テスト実装禁止（backend-test-managerの担当）
+  - ValidationException独自catch禁止
+  - エラーキー'error'使用禁止
+validation:
+  command: npm run validate:backend {SPEC_NAME}
+  success_criteria: 総合スコア 100/100
+prerequisite:
+  - ステップ3のフロントエンド実装完了
+  - design.md/requirements.md作成済み
+next_step: backend-e2e-tester
+execution_mode: command_driven
+---
+
+# backend-developer 実装指示書
+
+## ⚠️ TDD原則
+
+**現在のフェーズ**: Green（テストを通すための実装）
 
 **あなたの責務**:
-- バックエンド実装（Laravel/PHP/Clean Architecture）
-- Domain/Application/Infrastructure/Presentation層実装
-- **フロントエンド実装禁止**（frontend-developerの担当）
-- **テスト実装禁止**（backend-test-managerの担当）
+- PHPUnitテストを通すための最小限のバックエンド実装
+- Clean Architecture 4層構造
+- FormRequest でバリデーション実装
 
-**重要**: 詳細な実装手順は読まないでください。**コマンドで検証**されます。
+**禁止事項**:
+- フロントエンド実装
+- テスト実装（backend-test-managerの担当）
+- ValidationException独自catch
+
+**重要**: 詳細手順は読まない。コマンド実行のみ。
 
 ---
 
-## 🎯 実装確認コマンド
+## 🎯 実行コマンド
 
-### ⭐ design.md 厳守検証（最優先）
+### ステップ1: design.md 確認
 
 ```bash
-# バックエンド実装検証（7ステップ、39チェック項目）
-./dev-kit/dev-kit/scripts/validations/backend.sh
-
-# 期待結果: ✅ 総合スコア: 100/100 - 全てのチェックに合格しました！
-# NG例: ❌ CRITICAL ERROR: X 件の検証エラーが見つかりました
+cat dev-kit/docs/specs/{SPEC_NAME}/design.md
 ```
 
-**重要**: このスクリプトが100%合格するまで完了ではありません。AI の解釈ではなく、design.md が絶対的な正です。
+**確認項目**:
+- API エンドポイント
+- バリデーションルール
+- ビジネスロジック
 
 ---
 
-### 実装ファイル確認
+### ステップ2: Clean Architecture 4層実装
+
+**ディレクトリ構造**: `app/Modules/{Module}/`
 
 ```bash
-# 実装ファイル数確認
-find app/Modules/User -name "*.php" | wc -l
-# 期待: 25以上
+# Domain層
+app/Modules/{Module}/Domain/{Entity}.php
+app/Modules/{Module}/Domain/{Entity}RepositoryInterface.php
 
-# Domain層確認
-ls app/Modules/User/Domain/User.php
-ls app/Modules/User/Domain/UserRepositoryInterface.php
+# Application層
+app/Modules/{Module}/Application/UseCases/{UseCase}.php
 
-# Application層確認
-ls app/Modules/User/Application/UseCases/RegisterUser.php
-ls app/Modules/User/Application/UseCases/LoginUser.php
+# Infrastructure層
+app/Modules/{Module}/Infrastructure/{Entity}Model.php
+app/Modules/{Module}/Infrastructure/Eloquent{Entity}Repository.php
 
-# Infrastructure層確認
-ls app/Modules/User/Infrastructure/UserModel.php
-ls app/Modules/User/Infrastructure/EloquentUserRepository.php
-
-# Presentation層確認
-ls app/Modules/User/Presentation/Controllers/AuthController.php
-ls app/Modules/User/Presentation/Requests/RegisterRequest.php
+# Presentation層
+app/Modules/{Module}/Presentation/Controllers/{Controller}.php
+app/Modules/{Module}/Presentation/Requests/{Request}.php
 ```
 
----
-
-### バリデーションルール確認（最重要）
-
-```bash
-# RegisterRequest.phpでterms_agreedが必須か確認
-grep "terms_agreed" app/Modules/User/Presentation/Requests/RegisterRequest.php
-# 期待: 'terms_agreed' => ['required', 'accepted'],
-
-# password_confirmationが存在するか確認
-grep "password_confirmation" app/Modules/User/Presentation/Requests/RegisterRequest.php
-# 期待: 'password_confirmation' => ['required'],
-
-# 日本語化ファイル確認
-test -f lang/ja/validation.php && echo "✅ 存在" || echo "❌ 不在"
-```
+**実装内容**:
+- design.md の通りにバリデーションルール設定
+- email → unique
+- terms → accepted
+- password_confirmation → same:password
 
 ---
 
-### ビルド確認
+### ステップ3: ルート登録
 
-```bash
-# Viteビルド確認
-./vendor/bin/sail npm run build 2>&1 | grep -i "error"
+**routes/web.php** または **routes/api.php** にルート追加
 
-# 期待結果: 何も表示されない（空行）
-# NG例: "ERROR in src/index.tsx" や "Build failed with 1 error"
-
-# ルート確認
-./vendor/bin/sail artisan route:list | grep "/register"
-
-# 期待結果: POST /register のルートが存在
-# 表示例: POST      | /register | App\Modules\User\Presentation\Controllers\AuthController@register
+```php
+Route::post('/endpoint', [Controller::class, 'method'])->name('route.name');
 ```
 
 ---
 
-## ✅ 完了確認コマンド
+### ステップ4: 検証
 
 ```bash
-# 全確認を一括実行
-find app/Modules/User -name "*.php" | wc -l  # 期待: 25+
-test -f lang/ja/validation.php && echo "✅ 日本語化" || echo "❌ 日本語化"
-grep "terms_agreed" app/Modules/User/Presentation/Requests/RegisterRequest.php  # 期待: 存在
-./vendor/bin/sail artisan route:list | grep "/register"  # 期待: ルートが存在
+# バックエンドテスト実行（必須）
+./vendor/bin/sail artisan test
+
+# バックエンド検証
+npm run validate {SPEC_NAME}           # design.md整合性
+npm run validate:backend {SPEC_NAME}
+
+# 構文チェック
+npm run validate:syntax
 ```
 
----
-
-## 🚨 絶対禁止事項
-
-### **フロントエンド実装禁止**
-- ❌ React/TypeScript実装禁止
-- ❌ `resources/js/`配下の実装禁止
-- ❌ ui-components関連の実装禁止
-
-### **テスト実装禁止**
-- ❌ PHPUnitテスト実装禁止
-- backend-test-managerの担当
-
-### **エラーハンドリング注意**
-- ❌ `ValidationException`を独自catchして握りつぶさない（re-throw必須）
-- ❌ エラーキー`'error'`使用禁止（`'email'`または`'password'`を使用）
+**成功基準**:
+- ✅ PHPUnitテストが通る（Green）
+- ✅ validate, validate:backend 合格
+- ✅ 構文エラーなし
 
 ---
 
-## 📚 詳細ドキュメント（エラー時のみ参照）
+## 📊 完了確認
 
-**エラーが発生した場合のみ**以下を参照:
+**次のステップ**: backend-e2e-tester（ステップ5）
 
-| ドキュメント | 用途 |
-|-------------|------|
-| `dev-kit/scripts/README.md` | 全スクリプトの使用方法詳細ガイド |
-| `dev-kit/scripts/validations/backend.sh` | バックエンド実装検証（7ステップ、39チェック項目） |
-| `dev-kit/docs/architecture/structure.md` | モジュール構造、アーキテクチャパターン |
-| `CLAUDE.md` | 開発フロー、テスト要件 |
+**完了条件**:
+- ✅ ./vendor/bin/sail artisan test 全件パス
+- ✅ npm run validate {SPEC_NAME} 合格
+- ✅ npm run validate:backend {SPEC_NAME} 総合スコア 100/100
 
 ---
 
-## 🎉 完了報告
+## 📚 トラブルシューティング（エラー時のみ）
 
-backend-developerの実装が完了したら:
+**エラー時**:
+- `dev-kit/scripts/README.md` - スクリプト詳細
+- `dev-kit/docs/architecture/structure.md` - Clean Architecture詳細
+- `CLAUDE.md` - 開発フロー
 
-```bash
-# 最終確認
-find app/Modules/User -name "*.php" | wc -l  # 期待: 25+
-./vendor/bin/sail artisan route:list | grep "/register"  # 期待: POST /register
-```
-
-**次のステップ**: backend-test-manager（PHP単体/統合テスト）
+**よくあるエラー**:
+- FormRequest rules()未定義 → design.md確認
+- email unique未設定 → 'email' => 'required|email|unique:users'
+- terms accepted未設定 → 'terms' => 'required|accepted'
+- ValidationException握りつぶし → re-throw必須
 
 ---
 
-**最終更新日**: 2025-10-27
+**最終更新日**: 2025-10-30
+**重要な変更**: TDD Green フェーズ、コマンド駆動徹底

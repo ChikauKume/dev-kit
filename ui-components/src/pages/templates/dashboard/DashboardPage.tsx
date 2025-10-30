@@ -245,6 +245,21 @@ export interface Notification {
  */
 export interface DashboardPageProps {
   /**
+   * ログイン中のユーザー名
+   *
+   * 右上のユーザーボタンに表示されます。
+   * デフォルト: "ゲスト"
+   *
+   * @example Laravel Controller
+   * ```php
+   * return Inertia::render('Dashboard', [
+   *   'userName' => auth()->user()->name
+   * ]);
+   * ```
+   */
+  userName?: string;
+
+  /**
    * 統計カード配列
    *
    * 【重要】プロジェクトごとにダッシュボードの内容は大きく変わります。
@@ -478,6 +493,7 @@ export interface DashboardPageProps {
  * - Borders: --radius-*
  */
 const DashboardPage: React.FC<DashboardPageProps> = ({
+  userName = 'ゲスト',
   stats = [],
   hideNavigation = true,
   recentActivities = [],
@@ -653,6 +669,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
         currentPage={currentPage}
         onNavigate={handleNavigate}
         onLogout={handleLogout}
+        userName={userName}
         sidebarMenuItems={sidebarMenuItems}
         unreadCount={localNotifications.filter(n => !n.read).length}
         showNotificationDropdown={showNotificationDropdown}

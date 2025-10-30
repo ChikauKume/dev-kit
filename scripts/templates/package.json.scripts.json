@@ -1,0 +1,21 @@
+{
+  "build": "vite build",
+  "dev": "vite",
+  "dev:cleanup": "./dev-kit/scripts/common/cleanup-vite.sh",
+  "fix:blank-page": "./dev-kit/scripts/common/diagnose-blank-page.sh",
+  "validate": "./dev-kit/scripts/validate/design.php",
+  "validate:env": "./dev-kit/scripts/validate/env.sh",
+  "validate:deps": "./dev-kit/scripts/validate/deps.sh",
+  "validate:syntax": "./dev-kit/scripts/validate/syntax.sh",
+  "validate:blank-page": "./dev-kit/scripts/validate/blank-page.sh",
+  "validate:playwright": "./dev-kit/scripts/validate/playwright.sh",
+  "validate:frontend": "./dev-kit/scripts/validate/frontend.sh",
+  "validate:backend": "./dev-kit/scripts/validate/backend.sh",
+  "prebuild": "./dev-kit/scripts/validate/deps.sh || true",
+  "test:e2e": "playwright test",
+  "test:e2e:ui": "playwright test --ui",
+  "test:e2e:headed": "playwright test --headed",
+  "test:e2e:debug": "playwright test --debug",
+  "generate:tests": "./dev-kit/scripts/generate/phpunit.php",
+  "generate:e2e": "node dev-kit/scripts/generate/e2e.cjs"
+}

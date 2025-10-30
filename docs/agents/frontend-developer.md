@@ -1,135 +1,130 @@
-# frontend-developer 実装指示書（コマンド実行ガイド）
+---
+agent: frontend-developer
+phase: 2
+step: 3
+tdd_stage: green
+responsibility:
+  - React/TypeScript/ui-components実装
+  - useDynamicForm + useDynamicValidation使用
+  - テンプレートベース実装
+  - E2Eテストを通す最小限の実装
+forbidden:
+  - Inertia.js useForm使用禁止
+  - 独自UIコンポーネント作成禁止
+  - Tailwind CSS直接使用禁止
+  - HTMLバリデーション属性使用禁止
+validation:
+  command: npm run validate:frontend {SPEC_NAME}
+  success_criteria: 全チェック合格
+prerequisite:
+  - ステップ2のRed状態確認完了
+  - design.md/requirements.md作成済み
+next_step: backend-developer
+execution_mode: command_driven
+---
+
+# frontend-developer 実装指示書
+
+## ⚠️ TDD原則
+
+**現在のフェーズ**: Green（テストを通すための実装）
 
 **あなたの責務**:
-- フロントエンド実装（React/TypeScript/ui-components）
-- **バックエンド実装禁止**（backend-developerの担当）
-- **テスト実装禁止**（frontend-playwright-testerの担当）
+- E2Eテストを通すための最小限のフロントエンド実装
+- ui-components テンプレート使用
+- useDynamicForm + useDynamicValidation 使用
 
-**重要**: 詳細な実装手順は読まないでください。**コマンドを実行する**ことで自動的に検証されます。
+**禁止事項**:
+- Inertia.js の useForm 使用（useDynamicForm のみ）
+- 独自UIコンポーネント作成
+- Tailwind CSS 直接使用
+
+**重要**: 詳細手順は読まない。コマンド実行のみ。
 
 ---
 
-## 🎯 実装フロー（3ステップ）
+## 🎯 実行コマンド
 
-### **ステップ0: design.md 厳守検証** ⭐最優先
+### ステップ1: design.md 確認
 
 ```bash
-# フロントエンド実装検証（7フェーズ、23チェック項目）
-./dev-kit/scripts/validations/frontend.sh
-
-# 期待結果: ✅ 全てのチェックに合格しました！
-# NG例: ❌ CRITICAL ERROR: X 件の検証エラーが見つかりました
+cat dev-kit/docs/specs/{SPEC_NAME}/design.md
 ```
 
-**重要**: このスクリプトが100%合格するまで完了ではありません。AI の解釈ではなく、design.md が絶対的な正です。
-
-**確認項目** (design.md Section: 使用するテンプレート):
-- 各画面で使用するui-componentsテンプレート
-- バリデーションルール（useDynamicFormで実装）
+**確認項目**:
+- ページ一覧
+- フィールド定義
+- バリデーションルール
 
 ---
 
-### **ステップ1: Tailwind CSS削除** ⭐最優先
+### ステップ2: テンプレート選択・実装
+
+**テンプレート一覧**: `dev-kit/ui-components/templates/`
 
 ```bash
-# Tailwind CSS残存確認
-grep -r "tailwind" package.json resources/css/
-
-# 期待: 何も表示されない
+# 例: 2カラムフォーム
+cp dev-kit/ui-components/templates/two-column-form.tsx resources/js/Pages/{Module}/{PageName}.tsx
 ```
 
-**削除が必要な場合**:
-```bash
-# 1. package.jsonからtailwindcss, @tailwindcss/viteを削除
-# 2. resources/css/app.cssから @import 'tailwindcss'; を削除
-# 3. 設定ファイル削除
-rm -f tailwind.config.js postcss.config.js
+**実装内容**:
+- design.md の通りにフィールド配置
+- useDynamicForm, useDynamicValidation 使用
+- serverErrors マッピング
 
-# 4. 再インストール
-./vendor/bin/sail exec laravel.test npm install
+---
+
+### ステップ3: ルート設定
+
+**routes/web.php** にルート追加（design.md の通り）
+
+```php
+Route::get('/page-path', [Controller::class, 'index'])->name('page.name');
+Route::post('/page-path', [Controller::class, 'store']);
 ```
 
 ---
 
-### **ステップ2: ui-componentsテンプレート配置**
-
-```bash
-# 検証スクリプト実行（7フェーズ、23チェック項目）
-./dev-kit/scripts/validations/frontend.sh
-
-# 期待: 全てのチェックに合格
-```
-
-**./dev-kit/scripts/validations/frontend.sh でエラーが出た場合のみ**:
-
-エラー例:
-```
-❌ [1/7] ディレクトリ存在確認: resources/js/Pages/Auth が存在しません
-❌ ラッパーコンポーネント確認: Login.tsx が存在しません
-```
-
-このようなエラーが出た場合、以下を実行:
-1. `mkdir -p resources/js/Pages/Auth`
-2. ラッパーコンポーネント作成（CLAUDE.md セクション2.1参照）
-3. `app.tsx`でui-components CSS読込設定
-4. `./vendor/bin/sail npm run build`
-
----
-
-## ✅ 完了確認コマンド
+### ステップ4: 検証
 
 ```bash
-# フロントエンド実装の自動検証（21項目チェック）
-./dev-kit/scripts/validations/frontend.sh
+# フロントエンド検証（必須）
+npm run validate:frontend {SPEC_NAME}
 
-# 期待結果: "✅ 全てのチェックに合格しました！"
+# E2Eテスト実行
+npm run test:e2e tests/E2E/{SPEC_NAME}/
 ```
 
-**検証内容** (6つのPhase):
-1. useDynamicForm使用検証
-2. TypeScriptコンパイルチェック
-3. 禁止パターンチェック
-4. Tailwind CSS残存チェック
-5. 推奨パターン使用状況
-6. バックエンドテスト要件チェック
+**成功基準**:
+- ✅ validate:frontend 全チェック合格
+- ✅ E2Eテストが通り始める（まだバックエンドがないので一部失敗は正常）
 
 ---
 
-## 🚨 絶対禁止事項（コマンドで自動検出）
+## 📊 完了確認
 
-すべて `./dev-kit/scripts/validations/frontend.sh` で自動検出されます:
+**次のステップ**: backend-developer（ステップ4）
 
-- ❌ シンボリックリンク作成禁止（ラッパーコンポーネントを使用）
-- ❌ Inertia.jsの`useForm`使用禁止（`useDynamicForm`のみ使用）
-- ❌ 独自UIコンポーネント作成禁止
-- ❌ インタラクティブHTML要素の直接使用禁止（`<input>`, `<button>`等）
-- ❌ デモUI用props使用禁止（categories, viewMode, showFilters）
-
----
-
-## 📚 詳細ドキュメント（エラー時のみ参照）
-
-**エラーが発生した場合のみ**以下を参照:
-
-| ドキュメント | 用途 |
-|-------------|------|
-| `CLAUDE.md` (セクション2) | UIコンポーネント使用ガイド、ラッパーコンポーネント作成方法、useDynamicForm API |
-| `dev-kit/ui-components/LARAVEL_INTEGRATION_GUIDE.md` | 統合ガイド、データ渡し方、トラブルシューティング |
-| `dev-kit/ui-components/src/hooks/README.md` | useDynamicForm、useDynamicValidation、useDynamicTable詳細 |
+**完了条件**:
+- ✅ npm run validate:frontend {SPEC_NAME} 合格
+- ✅ ページが表示される
+- ✅ フォーム送信が試行できる（バックエンドエラーは正常）
 
 ---
 
-## 🎉 完了報告
+## 📚 トラブルシューティング（エラー時のみ）
 
-frontend-developerの実装が完了したら:
+**エラー時**:
+- `dev-kit/ui-components/LARAVEL_INTEGRATION_GUIDE.md` - テンプレート使用方法
+- `CLAUDE.md` - useDynamicForm API
+- `dev-kit/scripts/README.md` - スクリプト詳細
 
-```bash
-# 最終確認（7フェーズ、23チェック項目）
-./dev-kit/scripts/validations/frontend.sh  # 期待: 全てのチェックに合格しました！
-```
-
-**次のステップ**: frontend-playwright-tester（UI単体テスト）
+**よくあるエラー**:
+- useForm使用エラー → useDynamicForm に変更
+- Tailwind残存 → ui-components のコンポーネント使用
+- serverErrors未定義 → useDynamicForm で自動処理
 
 ---
 
-**最終更新日**: 2025-10-27
+**最終更新日**: 2025-10-30
+**重要な変更**: TDD Green フェーズ、コマンド駆動徹底

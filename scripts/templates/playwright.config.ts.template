@@ -1,0 +1,91 @@
+import { defineConfig, devices } from '@playwright/test';
+
+/**
+ * Playwright E2Eテスト設定
+ *
+ * 自動生成されたE2Eテストスクリプトを実行するための設定
+ */
+export default defineConfig({
+  // テストディレクトリ（複数指定可能）
+  testDir: './tests/e2e',
+
+  // 並列実行数
+  fullyParallel: false,
+  workers: 1,
+
+  // 失敗時のリトライ回数
+  retries: process.env.CI ? 2 : 0,
+
+  // タイムアウト設定
+  timeout: 60 * 1000, // 60秒
+
+  // レポーター（TODO: E2Eテスト完成後に詳細レポート設定を検討）
+  reporter: [
+    ['list'], // シンプルなコンソール出力のみ
+    // ['html', { outputFolder: 'docs/test-reports/playwright-html', open: 'never' }],
+    // ['json', { outputFile: 'docs/test-reports/playwright-results.json' }],
+  ],
+
+  // すべてのテストで共通の設定
+  use: {
+    // ベースURL (127.0.0.1 to avoid CORS issues with Vite assets)
+    baseURL: process.env.BASE_URL || 'http://127.0.0.1',
+
+    // スクリーンショット設定（動画があるため無効化）
+    screenshot: 'off',
+
+    // ビデオ録画（全テストで録画＆保存）
+    video: 'on',
+
+    // トレース
+    trace: 'on-first-retry',
+
+    // ブラウザコンテキストオプション
+    viewport: { width: 1280, height: 720 },
+
+    // ナビゲーションタイムアウト
+    navigationTimeout: 30 * 1000,
+
+    // アクションタイムアウト
+    actionTimeout: 15 * 1000,
+
+    // スロー実行モード（各アクション間に待機時間を追加）
+    // 750ms = 0.75秒の待機
+    launchOptions: {
+      slowMo: 750, // ミリ秒単位（各操作の間に0.75秒待機）
+    },
+  },
+
+  // テストプロジェクト（ブラウザ設定）
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+    },
+
+    // 必要に応じて他のブラウザも有効化
+    // {
+    //   name: 'firefox',
+    //   use: { ...devices['Desktop Firefox'] },
+    // },
+
+    // {
+    //   name: 'webkit',
+    //   use: { ...devices['Desktop Safari'] },
+    // },
+
+    // モバイルブラウザテスト
+    // {
+    //   name: 'Mobile Chrome',
+    //   use: { ...devices['Pixel 5'] },
+    // },
+  ],
+
+  // ローカル開発サーバー設定（オプション）
+  // webServer: {
+  //   command: './vendor/bin/sail up',
+  //   url: 'http://localhost',
+  //   reuseExistingServer: !process.env.CI,
+  //   timeout: 120 * 1000,
+  // },
+});
