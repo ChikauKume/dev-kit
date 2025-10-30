@@ -85,7 +85,7 @@ npm run qa:full {SPEC_NAME}
    ```bash
    npm run test:e2e tests/E2E/{SPEC_NAME}/
    ```
-   - ✅ 11ケース全成功
+   - ✅ 13ケース全成功
 
 5. **デザイン整合性**
    ```bash
