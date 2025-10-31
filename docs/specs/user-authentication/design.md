@@ -147,8 +147,8 @@ return Inertia::render('Dashboard', [
 ## テストケース
 
 **詳細定義**:
-- PHPUnit: `tests/phpunit-tests.yaml`
-- E2E: `tests/e2e-tests.yaml`
+- PHPUnit: `tests/phpunit.yaml`
+- E2E: `tests/e2e.yaml`
 
 ### E2Eシナリオ概要（13件）
 

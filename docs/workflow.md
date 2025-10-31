@@ -7,16 +7,11 @@ execution_mode: command_driven
 
 # TDD ワークフロー実装指示書
 
-## TDD フロー概要
+## 事前準備（初回のみ実行）
 
+```bash
+./dev-kit/scripts/setup/init.sh
 ```
-Red → Green → Refactor → QA
-```
-
-**重要原則**:
-- テストが先、実装が後
-- 各ステップで必ずコマンド実行による検証
-- design.md が Single Source of Truth
 
 ---
 
@@ -59,7 +54,7 @@ npm run generate:e2e {SPEC_NAME}     # E2E生成
 **成果物**:
 - tests/Unit/Modules/{Module}/ にテストコード
 - tests/Feature/Modules/{Module}/ にテストコード
-- tests/E2E/{SPEC_NAME}/ にE2Eテスト
+- tests/e2e/{SPEC_NAME}/ にE2Eテスト
 
 ---
 
@@ -92,17 +87,65 @@ npm run test:e2e                     # すべて失敗（期待通り）
 **実装対象**:
 - React/TypeScript/ui-components
 - useDynamicForm + useDynamicValidation
-- テンプレートベース実装
+- 既存テンプレートのカスタマイズ
+
+**実装方法**:
+
+`init.sh`実行後、以下のテンプレートが既に配置されています：
+
+```
+resources/js/Pages/
+├── Auth/
+│   ├── LoginPage.tsx
+│   ├── SignupPage.tsx
+│   ├── SignupConfirmPage.tsx
+│   ├── SignupCompletePage.tsx
+│   └── ... (その他認証テンプレート)
+├── Data/
+│   ├── FormPage.tsx
+│   ├── ListPage.tsx
+│   └── DetailPage.tsx
+├── Error/
+│   ├── Error404Page.tsx
+│   ├── Error500Page.tsx
+│   └── MaintenancePage.tsx
+├── Info/
+│   ├── TermsPage.tsx
+│   ├── PrivacyPage.tsx
+│   ├── CommercialPage.tsx
+│   └── QnaPage.tsx
+├── DashboardPage.tsx
+├── SettingsPage.tsx
+├── StatisticsPage.tsx
+└── NotificationsPage.tsx
+```
+
+**実装手順**:
+1. 既存のテンプレートファイルを開く（例: `resources/js/Pages/Auth/LoginPage.tsx`）
+2. ビジネスロジックのみカスタマイズ
+3. UIコンポーネントはそのまま使用（変更不要）
+
+**追加ページが必要な場合**:
+既存のテンプレートをコピー&リネームして使用
 
 **実装後検証**:
 ```bash
-npm run test:e2e tests/E2E/{SPEC_NAME}/
-npm run validate:frontend {SPEC_NAME}
+npm run build                         # ビルド成功確認
+npm run validate:frontend {SPEC_NAME} # フロントエンド包括検証（独自実装検出を含む）
+npm run test:e2e                      # E2Eテスト実行
 ```
 
+**frontend.shが自動検出する問題**:
+- 直接HTMLタグの使用（`<input>`, `<button>`, `<form>` 等）
+- Tailwind CSSの直接使用
+- カスタムコンポーネントの存在
+- useDynamicForm/useDynamicValidation使用漏れ
+- serverErrorsマッピング漏れ
+
 **成功基準**:
+- ✅ ビルドが成功（白画面なし）
+- ✅ validate:frontend 合格（独自実装なし）
 - ✅ フロントエンドテストが通る（Green）
-- ✅ validate:frontend 合格
 
 ---
 
@@ -133,9 +176,9 @@ npm run validate:backend {SPEC_NAME}
 
 #### ステップ5: バックエンド→ブラウザ連携テスト
 
-**担当**: backend-e2e-tester
+**担当**: backend-playwright-tester
 **TDD Stage**: Green
-**指示書**: [backend-e2e-tester.md](./agents/backend-e2e-tester.md)
+**指示書**: [backend-playwright-tester.md](./agents/backend-playwright-tester.md)
 
 **検証内容**:
 - バリデーションエラー表示
@@ -149,16 +192,16 @@ npm run validate:backend {SPEC_NAME}
 
 #### ステップ6: E2E統合テスト
 
-**担当**: integration-e2e-tester
+**担当**: integration-playwright-tester
 **TDD Stage**: Green
-**指示書**: [integration-e2e-tester.md](./agents/integration-e2e-tester.md)
+**指示書**: [integration-playwright-tester.md](./agents/integration-playwright-tester.md)
 
 **検証内容**:
 - 完全なユーザーフロー
 - 正常系・異常系シナリオ
 
 ```bash
-npm run test:e2e tests/E2E/{SPEC_NAME}/
+npm run test:e2e
 ```
 
 **成功基準**:
@@ -180,7 +223,7 @@ npm run test:e2e tests/E2E/{SPEC_NAME}/
 **リファクタリング後必ず実行**:
 ```bash
 ./vendor/bin/sail artisan test
-npm run test:e2e tests/E2E/{SPEC_NAME}/
+npm run test:e2e
 ```
 
 **成功基準**:
@@ -216,8 +259,8 @@ npm run test:e2e tests/E2E/{SPEC_NAME}/
 | 1-2 | backend-test-manager | 1 | Red | [backend-test-manager.md](./agents/backend-test-manager.md) |
 | 3 | frontend-developer | 2 | Green | [frontend-developer.md](./agents/frontend-developer.md) |
 | 4 | backend-developer | 2 | Green | [backend-developer.md](./agents/backend-developer.md) |
-| 5 | backend-e2e-tester | 3 | Green | [backend-e2e-tester.md](./agents/backend-e2e-tester.md) |
-| 6 | integration-e2e-tester | 3 | Green | [integration-e2e-tester.md](./agents/integration-e2e-tester.md) |
+| 5 | backend-playwright-tester | 3 | Green | [backend-playwright-tester.md](./agents/backend-playwright-tester.md) |
+| 6 | integration-playwright-tester | 3 | Green | [integration-playwright-tester.md](./agents/integration-playwright-tester.md) |
 | 7 | - | 4 | Refactor | - |
 | 8 | quality-assurance | 4 | QA | [quality-assurance.md](./agents/quality-assurance.md) |
 
@@ -232,5 +275,9 @@ npm run test:e2e tests/E2E/{SPEC_NAME}/
 
 ---
 
-**最終更新日**: 2025-10-30
-**重要な変更**: TDD ワークフロー導入、8ステップフロー確定、コマンド駆動徹底
+**最終更新日**: 2025-10-31
+**重要な変更**:
+- エージェント名修正: `backend-e2e-tester` → `backend-playwright-tester`, `integration-e2e-tester` → `integration-playwright-tester`
+- ディレクトリパス修正: `tests/E2E/` → `tests/e2e/`
+- コマンド簡略化: `npm run test:e2e tests/E2E/{SPEC_NAME}/` → `npm run test:e2e`
+- **ページテンプレート事前配置**: init.sh Step 8 による物理的独自実装防止

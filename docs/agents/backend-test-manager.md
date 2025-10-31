@@ -16,8 +16,8 @@ validation:
   success_criteria: すべて失敗（Red状態 - これが正常）
 prerequisite:
   - design.md/requirements.md作成済み
-  - tests/phpunit-tests.yaml作成済み
-  - tests/e2e-tests.yaml作成済み
+  - tests/phpunit.yaml作成済み
+  - tests/e2e.yaml作成済み
 next_step: frontend-developer
 execution_mode: command_driven
 ---
@@ -58,7 +58,7 @@ npm run generate:e2e {SPEC_NAME}
 ```bash
 find tests/Unit/Modules/{Module} -name "*Test.php" | wc -l   # 期待: 15+
 find tests/Feature/Modules/{Module} -name "*Test.php" | wc -l # 期待: 10+
-ls tests/E2E/{SPEC_NAME}/                                      # E2Eテスト確認
+ls tests/e2e/{SPEC_NAME}/                                      # E2Eテスト確認
 ```
 
 **成功基準**:
@@ -100,12 +100,12 @@ npm run test:e2e
 
 **エラー時**:
 - `dev-kit/scripts/README.md` - スクリプト詳細
-- `dev-kit/docs/specs/{SPEC_NAME}/tests/phpunit-tests.yaml` - テスト定義
-- `dev-kit/docs/specs/{SPEC_NAME}/tests/e2e-tests.yaml` - E2E定義
+- `dev-kit/docs/specs/{SPEC_NAME}/tests/phpunit.yaml` - テスト定義
+- `dev-kit/docs/specs/{SPEC_NAME}/tests/e2e.yaml` - E2E定義
 
 **よくあるエラー**:
 - テスト生成コマンドが見つからない → npm install 実行
-- YAMLパースエラー → phpunit-tests.yaml, e2e-tests.yaml の構文確認
+- YAMLパースエラー → phpunit.yaml, e2e.yaml の構文確認
 
 ---
 

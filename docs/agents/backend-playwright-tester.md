@@ -1,5 +1,5 @@
 ---
-agent: backend-e2e-tester
+agent: backend-playwright-tester
 phase: 3
 step: 5
 tdd_stage: green
@@ -9,7 +9,7 @@ responsibility:
   - Flash メッセージ表示確認
   - セッション連携確認
 forbidden:
-  - E2Eユーザーシナリオテスト禁止（integration-e2e-testerの担当）
+  - E2Eユーザーシナリオテスト禁止（integration-playwright-testerの担当）
   - UI単体テスト禁止
 validation:
   command: npm run test:backend-e2e
@@ -17,11 +17,11 @@ validation:
 prerequisite:
   - ステップ4のバックエンド実装完了
   - PHPUnitテスト全件パス
-next_step: integration-e2e-tester
+next_step: integration-playwright-tester
 execution_mode: command_driven
 ---
 
-# backend-e2e-tester 実装指示書
+# backend-playwright-tester 実装指示書
 
 ## ⚠️ TDD原則
 
@@ -33,7 +33,7 @@ execution_mode: command_driven
 - セッション連携確認
 
 **禁止事項**:
-- E2Eユーザーシナリオテスト（integration-e2e-testerの担当）
+- E2Eユーザーシナリオテスト（integration-playwright-testerの担当）
 - UI単体テスト
 
 **重要**: 詳細手順は読まない。コマンド実行のみ。
@@ -86,7 +86,7 @@ ls docs/test-reports/screenshots/{SPEC_NAME}/backend-*.png | wc -l
 
 ## 📊 完了確認
 
-**次のステップ**: integration-e2e-tester（ステップ6）
+**次のステップ**: integration-playwright-tester（ステップ6）
 
 **完了条件**:
 - ✅ npm run test:backend-e2e 全件パス

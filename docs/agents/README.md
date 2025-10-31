@@ -35,7 +35,7 @@ Red → Green → Refactor → QA
 | `frontend-developer.md` | frontend-developer | 2 | 3 | Green | フロントエンド実装 |
 | `backend-developer.md` | backend-developer | 2 | 4 | Green | バックエンド実装 |
 | `backend-e2e-tester.md` | backend-e2e-tester | 3 | 5 | Green | バックエンド→ブラウザ連携確認 |
-| `integration-e2e-tester.md` | integration-e2e-tester | 3 | 6 | Green | E2E統合テスト |
+| `integration-playwright-tester.md` | integration-playwright-tester | 3 | 6 | Green | E2E統合テスト |
 | `quality-assurance.md` | quality-assurance | 4 | 8 | QA | 品質保証・リリース判定 |
 
 ---
@@ -114,7 +114,7 @@ npm run test:e2e                     # すべて失敗（期待通り）
 ```bash
 # 実装後検証
 npm run validate:frontend {SPEC_NAME}
-npm run test:e2e tests/E2E/{SPEC_NAME}/
+npm run test:e2e
 ```
 
 #### ステップ4: バックエンド実装
@@ -134,7 +134,7 @@ npm run validate:backend {SPEC_NAME}
 
 #### ステップ5: バックエンド→ブラウザ連携
 
-**担当**: backend-e2e-tester
+**担当**: backend-playwright-tester
 
 ```bash
 npm run test:backend-e2e
@@ -142,10 +142,10 @@ npm run test:backend-e2e
 
 #### ステップ6: E2E統合テスト
 
-**担当**: integration-e2e-tester
+**担当**: integration-playwright-tester
 
 ```bash
-npm run test:e2e tests/E2E/{SPEC_NAME}/
+npm run test:e2e
 ```
 
 ---
@@ -159,7 +159,7 @@ npm run test:e2e tests/E2E/{SPEC_NAME}/
 ```bash
 # リファクタリング後必ず実行
 ./vendor/bin/sail artisan test
-npm run test:e2e tests/E2E/{SPEC_NAME}/
+npm run test:e2e
 ```
 
 #### ステップ8: 品質保証・リリース判定
@@ -235,7 +235,7 @@ npm run validate:backend {SPEC_NAME}
 - ❌ テストスキップ
 - ❌ テスト失敗の無視
 
-### integration-e2e-tester
+### integration-playwright-tester
 
 - ❌ 11テストケースのうち1つでも省略
 - ❌ npx playwright test コマンド使用（E2E MCPのみ）

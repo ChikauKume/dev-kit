@@ -92,7 +92,7 @@ Route::post('/page-path', [Controller::class, 'store']);
 npm run validate:frontend {SPEC_NAME}
 
 # E2Eテスト実行
-npm run test:e2e tests/E2E/{SPEC_NAME}/
+npm run test:e2e
 ```
 
 **成功基準**:

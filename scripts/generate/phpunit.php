@@ -31,11 +31,10 @@ $projectRoot = dirname(__DIR__, 3);
 $testsDir = $projectRoot . "/dev-kit/docs/specs/{$specName}/tests";
 
 // YAMLファイルのパス
-$unitTestsYaml = "{$testsDir}/unit-tests.yaml";
-$featureTestsYaml = "{$testsDir}/feature-tests.yaml";
+$phpunitYaml = "{$testsDir}/phpunit.yaml";
 
-if (!file_exists($unitTestsYaml)) {
-    echo "❌ ERROR: {$unitTestsYaml} not found\n";
+if (!file_exists($phpunitYaml)) {
+    echo "❌ ERROR: {$phpunitYaml} not found\n";
     exit(1);
 }
 
@@ -46,7 +45,7 @@ echo "Spec: {$specName}\n";
 echo "\n";
 
 /**
- * YAML簡易パーサー（use_caseとmoduleのみ抽出）
+ * YAML簡易パーサー（usecases配列からname, class抽出）
  */
 function parseYamlForUseCases(string $yamlPath): array
 {
@@ -54,37 +53,47 @@ function parseYamlForUseCases(string $yamlPath): array
     $lines = explode("\n", $content);
 
     $useCases = [];
+    $inUsecasesSection = false;
     $currentUseCase = null;
-    $currentModule = null;
+    $currentClass = null;
 
     foreach ($lines as $line) {
-        // use_case行を検出
-        if (preg_match('/^\s{2}use_case:\s*(.+)$/', $line, $matches)) {
+        // usecases: セクション開始を検出
+        if (preg_match('/^usecases:/', $line)) {
+            $inUsecasesSection = true;
+            continue;
+        }
+
+        // usecasesセクション内でなければスキップ
+        if (!$inUsecasesSection) {
+            continue;
+        }
+
+        // 次のトップレベルセクション（unit_tests:等）で終了
+        if (preg_match('/^[a-z_]+:/', $line) && !preg_match('/^\s/', $line)) {
+            break;
+        }
+
+        // name: 行を検出
+        if (preg_match('/^\s{2}-\s+name:\s*(.+)$/', $line, $matches)) {
             $currentUseCase = trim($matches[1]);
         }
 
-        // module行を検出
-        if (preg_match('/^\s{2}module:\s*(.+)$/', $line, $matches)) {
-            $currentModule = trim($matches[1]);
-        }
+        // class: 行を検出
+        if (preg_match('/^\s{4}class:\s*(.+)$/', $line, $matches)) {
+            $currentClass = trim($matches[1]);
 
-        // トップレベルキー（次のユースケース）を検出
-        if (preg_match('/^([a-z_]+):$/', $line) && $currentUseCase && $currentModule) {
-            $useCases[] = [
-                'use_case' => $currentUseCase,
-                'module' => $currentModule,
-            ];
-            $currentUseCase = null;
-            $currentModule = null;
+            // classからmodule名を抽出（例: App\Modules\User\... → User）
+            if ($currentUseCase && $currentClass && preg_match('/App\\\\Modules\\\\([^\\\\]+)\\\\/', $currentClass, $moduleMatches)) {
+                $module = $moduleMatches[1];
+                $useCases[] = [
+                    'use_case' => $currentUseCase,
+                    'module' => $module,
+                ];
+                $currentUseCase = null;
+                $currentClass = null;
+            }
         }
-    }
-
-    // 最後のユースケースを追加
-    if ($currentUseCase && $currentModule) {
-        $useCases[] = [
-            'use_case' => $currentUseCase,
-            'module' => $currentModule,
-        ];
     }
 
     return $useCases;
@@ -297,10 +306,10 @@ PHP;
 echo "📝 Step 1: Generating Unit Test Skeletons\n";
 echo "------------------------------------------------------------------------\n";
 
-$useCases = parseYamlForUseCases($unitTestsYaml);
+$useCases = parseYamlForUseCases($phpunitYaml);
 
 if (empty($useCases)) {
-    echo "⚠️  No use cases found in {$unitTestsYaml}\n";
+    echo "⚠️  No use cases found in {$phpunitYaml}\n";
 } else {
     foreach ($useCases as $uc) {
         generateUnitTestSkeleton($projectRoot, $uc['module'], $uc['use_case']);
@@ -335,14 +344,11 @@ echo "⚠️  IMPORTANT: These are SKELETONS, not complete tests!\n";
 echo "\n";
 echo "Next steps:\n";
 echo "  1. Review generated test files\n";
-echo "  2. Implement TODO sections based on test-cases.yaml\n";
+echo "  2. Implement TODO sections based on phpunit.yaml\n";
 echo "  3. Run tests: ./vendor/bin/sail artisan test\n";
 echo "  4. Achieve 100% pass rate before proceeding\n";
 echo "\n";
 echo "📚 Reference:\n";
-echo "  - Unit test cases: {$unitTestsYaml}\n";
-if (file_exists($featureTestsYaml)) {
-    echo "  - Feature test cases: {$featureTestsYaml}\n";
-}
+echo "  - PHPUnit test cases: {$phpunitYaml}\n";
 echo "\n";
 echo "========================================================================\n";

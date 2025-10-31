@@ -86,8 +86,8 @@ dev-kit/
 │           ├── requirements.md
 │           ├── design.md          # Single Source of Truth
 │           └── tests/
-│               ├── phpunit-tests.yaml  # PHPUnit（Unit/Feature）
-│               └── e2e-tests.yaml      # E2E
+│               ├── phpunit.yaml  # PHPUnit（Unit/Feature）
+│               └── e2e.yaml      # E2E
 └── README.md                      # このファイル
 ```
 
@@ -240,8 +240,8 @@ dev-kit/docs/specs/{SPEC_NAME}/
 ├── requirements.md              # 要件定義
 ├── design.md                    # 画面設計（Single Source of Truth）
 └── tests/
-    ├── phpunit-tests.yaml       # PHPUnitテスト定義（Unit/Feature）
-    └── e2e-tests.yaml           # E2Eテスト定義
+    ├── phpunit.yaml       # PHPUnitテスト定義（Unit/Feature）
+    └── e2e.yaml           # E2Eテスト定義
 ```
 
 ### 2. Claude Codeに指示

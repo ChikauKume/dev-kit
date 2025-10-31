@@ -19,7 +19,7 @@ validation:
 prerequisite:
   - ステップ3のフロントエンド実装完了
   - design.md/requirements.md作成済み
-next_step: backend-e2e-tester
+next_step: backend-playwright-tester
 execution_mode: command_driven
 ---
 
@@ -120,7 +120,7 @@ npm run validate:syntax
 
 ## 📊 完了確認
 
-**次のステップ**: backend-e2e-tester（ステップ5）
+**次のステップ**: backend-playwright-tester（ステップ5）
 
 **完了条件**:
 - ✅ ./vendor/bin/sail artisan test 全件パス

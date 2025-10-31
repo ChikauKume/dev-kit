@@ -1,5 +1,5 @@
 ---
-agent: integration-e2e-tester
+agent: integration-playwright-tester
 phase: 3
 step: 6
 tdd_stage: green
@@ -13,7 +13,7 @@ forbidden:
   - npx playwright test コマンド使用禁止（E2E MCPのみ）
   - 固定メールアドレスで新規登録禁止
 validation:
-  command: npm run test:e2e tests/E2E/{SPEC_NAME}/
+  command: npm run test:e2e
   success_criteria: 全テスト成功（正常系5+異常系6）
 prerequisite:
   - ステップ5のバックエンド→ブラウザ連携確認完了
@@ -22,7 +22,7 @@ next_step: quality-assurance（ステップ7スキップ後）
 execution_mode: command_driven
 ---
 
-# integration-e2e-tester 実装指示書
+# integration-playwright-tester 実装指示書
 
 ## ⚠️ TDD原則
 
@@ -63,7 +63,7 @@ execution_mode: command_driven
 
 ```bash
 # E2E統合テスト実行（正常系5+異常系6=11ケース）
-npm run test:e2e tests/E2E/{SPEC_NAME}/
+npm run test:e2e
 ```
 
 **11つの必須テストケース**:
@@ -125,7 +125,7 @@ test -f tests/playwright-results.json && echo "✅ 自動テスト結果存在"
 
 **エラー時**:
 - `dev-kit/scripts/tests/integration.sh` - E2E統合テスト実行スクリプト
-- `dev-kit/docs/specs/{SPEC_NAME}/tests/e2e-tests.yaml` - E2Eテストシナリオ定義
+- `dev-kit/docs/specs/{SPEC_NAME}/tests/e2e.yaml` - E2Eテストシナリオ定義
 - `dev-kit/scripts/README.md` - スクリプト詳細
 
 **よくあるエラー**:

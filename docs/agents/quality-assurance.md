@@ -83,7 +83,7 @@ npm run qa:full {SPEC_NAME}
 
 4. **E2Eユーザーシナリオ**
    ```bash
-   npm run test:e2e tests/E2E/{SPEC_NAME}/
+   npm run test:e2e
    ```
    - ✅ 13ケース全成功
 

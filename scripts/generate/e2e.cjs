@@ -3,221 +3,245 @@
 /**
  * E2E Test Generator
  *
- * design.md から E2E シナリオを抽出し、Playwright スクリプトを自動生成
+ * e2e.yaml から E2E シナリオを抽出し、Playwright スクリプトを自動生成
  *
  * Usage:
- *   node dev-kit/scripts/e2e/generate-e2e-tests.js <spec-name>
- *   node dev-kit/scripts/e2e/generate-e2e-tests.js user-authentication
+ *   node dev-kit/scripts/generate/e2e.cjs <spec-name>
+ *   node dev-kit/scripts/generate/e2e.cjs user-authentication
  */
 
 const fs = require('fs');
 const path = require('path');
 
 /**
- * design.md からE2Eシナリオセクションを抽出
+ * e2e.yaml からシナリオを抽出（簡易YAMLパーサー）
  */
-function extractE2EScenariosFromDesign(designMdPath) {
-  if (!fs.existsSync(designMdPath)) {
-    throw new Error(`design.md not found: ${designMdPath}`);
+function parseE2ETestsYaml(yamlPath) {
+  if (!fs.existsSync(yamlPath)) {
+    throw new Error(`e2e.yaml not found: ${yamlPath}`);
   }
 
-  const content = fs.readFileSync(designMdPath, 'utf-8');
+  const content = fs.readFileSync(yamlPath, 'utf-8');
+  const lines = content.split('\n');
 
-  // E2Eテストシナリオセクションを抽出
-  const e2eSectionMatch = content.match(/## E2Eテストシナリオ[\s\S]*$/);
-
-  if (!e2eSectionMatch) {
-    console.warn('⚠️  No "## E2Eテストシナリオ" section found in design.md');
-    return [];
-  }
-
-  const e2eSection = e2eSectionMatch[0];
-
-  // 各シナリオを抽出（#### E2E-XXX: で始まる）
-  const scenarioPattern = /#### (E2E-\d+): (.+?)\n\n([\s\S]*?)(?=\n#### E2E-\d+:|$)/g;
   const scenarios = [];
+  let inScenariosSection = false;
+  let currentScenario = null;
+  let currentSteps = [];
+  let inStepsSection = false;
+  let currentIndent = 0;
 
-  let match;
-  while ((match = scenarioPattern.exec(e2eSection)) !== null) {
-    const [, scenarioId, scenarioTitle, scenarioBody] = match;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
 
-    // 各フィールドを抽出
-    const scenario = {
-      id: scenarioId,
-      title: scenarioTitle,
-      purpose: extractField(scenarioBody, '**目的**:'),
-      preconditions: extractListField(scenarioBody, '**前提条件**:'),
-      steps: extractListField(scenarioBody, '**ステップ**:'),
-      expectedResults: extractListField(scenarioBody, '**期待結果**:'),
-      verifications: extractListField(scenarioBody, '**検証項目**:'),
-    };
+    // scenarios: セクション開始
+    if (line.match(/^scenarios:/)) {
+      inScenariosSection = true;
+      continue;
+    }
 
-    scenarios.push(scenario);
+    if (!inScenariosSection) continue;
+
+    // 次のトップレベルセクションで終了
+    if (line.match(/^[a-z_]+:/) && !line.match(/^\s/)) {
+      break;
+    }
+
+    // 新しいシナリオ開始（- id:）
+    if (line.match(/^\s{2}-\s+id:\s*(.+)$/)) {
+      // 前のシナリオを保存
+      if (currentScenario) {
+        currentScenario.steps = currentSteps;
+        scenarios.push(currentScenario);
+      }
+
+      currentScenario = {
+        id: line.match(/id:\s*(.+)$/)[1].trim(),
+        name: '',
+        category: '',
+        description: '',
+        steps: [],
+      };
+      currentSteps = [];
+      inStepsSection = false;
+      continue;
+    }
+
+    if (!currentScenario) continue;
+
+    // シナリオのフィールド抽出
+    if (line.match(/^\s{4}name:\s*(.+)$/)) {
+      currentScenario.name = line.match(/name:\s*(.+)$/)[1].trim();
+    }
+    if (line.match(/^\s{4}category:\s*(.+)$/)) {
+      currentScenario.category = line.match(/category:\s*(.+)$/)[1].trim();
+    }
+    if (line.match(/^\s{4}description:\s*\|?\s*$/)) {
+      // 複数行descriptionの開始（次の行から読み込む）
+      let j = i + 1;
+      let desc = [];
+      while (j < lines.length && lines[j].match(/^\s{6,}/)) {
+        desc.push(lines[j].trim());
+        j++;
+      }
+      currentScenario.description = desc.join(' ').trim();
+      i = j - 1;
+      continue;
+    }
+
+    // steps: セクション開始
+    if (line.match(/^\s{4}steps:/)) {
+      inStepsSection = true;
+      continue;
+    }
+
+    if (!inStepsSection) continue;
+
+    // ステップ抽出（- action:）
+    if (line.match(/^\s{6}-\s+action:\s*(.+)$/)) {
+      const action = line.match(/action:\s*(.+)$/)[1].trim();
+      const step = { action };
+
+      // 次の行からステップの詳細を読み込む
+      let j = i + 1;
+      while (j < lines.length) {
+        const nextLine = lines[j];
+
+        // 次のステップまたはセクション終了
+        if (nextLine.match(/^\s{6}-\s+action:/) || nextLine.match(/^\s{0,4}[a-z_]+:/)) {
+          break;
+        }
+
+        // ステップのプロパティを抽出
+        if (nextLine.match(/^\s{8}(\w+):\s*(.+)$/)) {
+          const [, key, value] = nextLine.match(/^\s{8}(\w+):\s*(.+)$/);
+          step[key] = value.trim().replace(/^["']|["']$/g, '');
+        }
+
+        j++;
+      }
+
+      currentSteps.push(step);
+      i = j - 1;
+    }
+  }
+
+  // 最後のシナリオを保存
+  if (currentScenario) {
+    currentScenario.steps = currentSteps;
+    scenarios.push(currentScenario);
   }
 
   return scenarios;
 }
 
 /**
- * フィールド抽出（単一行）
+ * アクションをPlaywrightコードに変換
  */
-function extractField(text, fieldName) {
-  // エスケープ処理: ** を \*\* に変換
-  const escapedFieldName = fieldName.replace(/\*/g, '\\*');
-  const pattern = new RegExp(`${escapedFieldName}\\s*(.+?)(?=\\n\\*\\*|$)`, 's');
-  const match = text.match(pattern);
-  return match ? match[1].trim() : '';
-}
+function convertActionToPlaywright(step, index) {
+  const { action, url, selector, value, expected, description } = step;
+  const lines = [];
 
-/**
- * リスト形式フィールド抽出
- */
-function extractListField(text, fieldName) {
-  // エスケープ処理: ** を \*\* に変換
-  const escapedFieldName = fieldName.replace(/\*/g, '\\*');
-  const pattern = new RegExp(`${escapedFieldName}\\s*([\\s\\S]*?)(?=\\n\\*\\*|$)`);
-  const match = text.match(pattern);
-
-  if (!match) return [];
-
-  const listText = match[1];
-  const items = listText
-    .split('\n')
-    .filter(line => line.trim().match(/^[-\d\.]/))
-    .map(line => line.replace(/^[-\d\.\s\[\]]+/, '').trim());
-
-  return items;
-}
-
-/**
- * ステップをPlaywrightコマンドに変換
- */
-function convertStepToPlaywright(step, stepIndex) {
-  const commands = [];
-
-  // URL遷移
-  if (step.match(/`(.+?)`\s*にアクセス/)) {
-    const url = step.match(/`(.+?)`/)[1];
-    commands.push(`    // Step ${stepIndex + 1}: ${step}`);
-    commands.push(`    await page.goto('${url}');`);
-    commands.push(`    await page.waitForLoadState('networkidle');`);
-    return commands.join('\n');
+  // コメント追加
+  if (description) {
+    lines.push(`    // ${description}`);
   }
 
-  // 遷移確認
-  if (step.match(/`(.+?)`\s*に遷移することを確認/)) {
-    const url = step.match(/`(.+?)`/)[1];
-    commands.push(`    // Step ${stepIndex + 1}: ${step}`);
-    commands.push(`    await expect(page).toHaveURL('${url}');`);
-    return commands.join('\n');
+  switch (action) {
+    case 'navigate':
+      lines.push(`    await page.goto('${url}');`);
+      lines.push(`    await page.waitForLoadState('networkidle');`);
+      break;
+
+    case 'type':
+      lines.push(`    await page.fill('${selector}', '${value}');`);
+      break;
+
+    case 'click':
+      lines.push(`    await page.click('${selector}');`);
+      break;
+
+    case 'check':
+      lines.push(`    await page.check('${selector}');`);
+      break;
+
+    case 'uncheck':
+      lines.push(`    await page.uncheck('${selector}');`);
+      break;
+
+    case 'assert':
+      if (expected) {
+        lines.push(`    await expect(page.locator('${selector}')).toContainText('${expected}');`);
+      } else {
+        lines.push(`    await expect(page.locator('${selector}')).toBeVisible();`);
+      }
+      break;
+
+    case 'assert_text_contains':
+      lines.push(`    await expect(page.locator('${selector}')).toContainText('${expected}');`);
+      break;
+
+    case 'assert_not_visible':
+      lines.push(`    await expect(page.locator('${selector}')).not.toBeVisible();`);
+      break;
+
+    case 'wait_for_navigation':
+      if (url) {
+        lines.push(`    await page.waitForURL('${url}');`);
+      } else {
+        lines.push(`    await page.waitForLoadState('networkidle');`);
+      }
+      break;
+
+    case 'wait':
+      const timeout = step.timeout || 1000;
+      lines.push(`    await page.waitForTimeout(${timeout});`);
+      break;
+
+    case 'screenshot':
+      const screenshotPath = step.path || `screenshots/step-${index}.png`;
+      lines.push(`    await page.screenshot({ path: '${screenshotPath}' });`);
+      break;
+
+    default:
+      lines.push(`    // TODO: Implement action '${action}'`);
+      if (selector) lines.push(`    // Selector: ${selector}`);
+      if (value) lines.push(`    // Value: ${value}`);
+      if (expected) lines.push(`    // Expected: ${expected}`);
   }
 
-  // リダイレクト確認
-  if (step.match(/`(.+?)`\s*にリダイレクトされることを確認/)) {
-    const url = step.match(/`(.+?)`/)[1];
-    commands.push(`    // Step ${stepIndex + 1}: ${step}`);
-    commands.push(`    await expect(page).toHaveURL('${url}');`);
-    return commands.join('\n');
-  }
-
-  // フォーム入力（パターン: フィールド名: "値"）
-  if (step.match(/(.+?):\s*"(.+?)"/)) {
-    const [, fieldLabel, value] = step.match(/(.+?):\s*"(.+?)"/);
-    const fieldName = inferFieldName(fieldLabel.trim());
-    commands.push(`    // ${step}`);
-    commands.push(`    await page.fill('input[name="${fieldName}"]', '${value}');`);
-    return commands.join('\n');
-  }
-
-  // チェックボックス
-  if (step.match(/(.+?):\s*チェック/)) {
-    const fieldLabel = step.match(/(.+?):/)[1].trim();
-    const fieldName = inferFieldName(fieldLabel);
-    commands.push(`    // ${step}`);
-    commands.push(`    await page.check('input[name="${fieldName}"]');`);
-    return commands.join('\n');
-  }
-
-  // ボタンクリック
-  if (step.match(/「(.+?)」.*?ボタンをクリック/) || step.match(/「(.+?)」をクリック/)) {
-    const buttonText = step.match(/「(.+?)」/)[1];
-    commands.push(`    // Step ${stepIndex + 1}: ${step}`);
-    commands.push(`    await page.click('button:has-text("${buttonText}")');`);
-    return commands.join('\n');
-  }
-
-  // テキスト表示確認
-  if (step.match(/「?(.+?)」?が表示されることを確認/)) {
-    const text = step.match(/「?(.+?)」?が表示/)[1];
-    commands.push(`    // Step ${stepIndex + 1}: ${step}`);
-    commands.push(`    await expect(page.locator('text=${text}')).toBeVisible();`);
-    return commands.join('\n');
-  }
-
-  // テキスト非表示確認
-  if (step.match(/(.+?)が表示されていないこと/)) {
-    const text = step.match(/(.+?)が表示されていない/)[1];
-    commands.push(`    // Step ${stepIndex + 1}: ${step}`);
-    commands.push(`    await expect(page.locator('text=${text}')).not.toBeVisible();`);
-    return commands.join('\n');
-  }
-
-  // エラーメッセージ表示
-  if (step.match(/エラーメッセージが表示/)) {
-    commands.push(`    // Step ${stepIndex + 1}: ${step}`);
-    commands.push(`    await expect(page.locator('.form-error')).toBeVisible();`);
-    return commands.join('\n');
-  }
-
-  // フォーム入力（複数行パターン）
-  if (step.match(/フォームに(.+?)を入力/)) {
-    commands.push(`    // Step ${stepIndex + 1}: ${step}`);
-    return commands.join('\n');
-  }
-
-  // デフォルト（コメントのみ）
-  commands.push(`    // Step ${stepIndex + 1}: ${step}`);
-  commands.push(`    // TODO: Implement this step manually`);
-  return commands.join('\n');
-}
-
-/**
- * フィールドラベルからname属性を推測
- */
-function inferFieldName(label) {
-  const mapping = {
-    '名前': 'name',
-    'メールアドレス': 'email',
-    'メール': 'email',
-    'パスワード（確認）': 'password_confirmation',
-    'パスワード': 'password',
-    '電話番号': 'phone',
-    '利用規約': 'agreeToTerms',
-  };
-
-  return mapping[label] || label.toLowerCase().replace(/\s+/g, '_');
+  return lines.join('\n');
 }
 
 /**
  * Playwrightスクリプト生成
  */
 function generatePlaywrightScript(scenario, specName) {
-  const fileName = `${scenario.id.toLowerCase()}.spec.ts`;
+  // ファイル名: シナリオ名をPascalCaseに変換
+  const fileName = scenario.name
+    .replace(/[（）\(\)]/g, '')
+    .replace(/[\s・]/g, '-')
+    .replace(/[-]+/g, '-')
+    + '.spec.ts';
 
   const stepsCode = scenario.steps
-    .map((step, index) => convertStepToPlaywright(step, index))
+    .map((step, index) => convertActionToPlaywright(step, index))
     .join('\n\n');
 
   const template = `import { test, expect } from '@playwright/test';
 
 /**
- * ${scenario.id}: ${scenario.title}
+ * ${scenario.id}: ${scenario.name}
  *
- * 目的: ${scenario.purpose}
+ * ${scenario.description}
+ *
+ * Category: ${scenario.category}
  */
 
-test.describe('${scenario.id}: ${scenario.title}', () => {
-  test('should ${scenario.purpose}', async ({ page }) => {
+const BASE_URL = process.env.BASE_URL || 'http://localhost';
+
+test.describe('${scenario.id}: ${scenario.name}', () => {
+  test('${scenario.description}', async ({ page }) => {
 ${stepsCode}
   });
 });
@@ -233,27 +257,33 @@ function main() {
   const args = process.argv.slice(2);
 
   if (args.length === 0) {
-    console.error('❌ Usage: node generate-e2e-tests.js <spec-name>');
-    console.error('   Example: node generate-e2e-tests.js user-authentication');
+    console.error('❌ Usage: node dev-kit/scripts/generate/e2e.cjs <spec-name>');
+    console.error('   Example: node dev-kit/scripts/generate/e2e.cjs user-authentication');
     process.exit(1);
   }
 
   const specName = args[0];
-  const designMdPath = path.join(__dirname, `../../docs/specs/${specName}/design.md`);
+  const yamlPath = path.join(__dirname, `../../docs/specs/${specName}/tests/e2e.yaml`);
   const outputDir = path.join(__dirname, `../../../tests/e2e/${specName}`);
 
   console.log('========================================');
   console.log('🚀 E2E Test Generator');
   console.log('========================================\n');
 
-  console.log(`📖 Reading design.md: ${designMdPath}`);
+  console.log(`📖 Reading e2e.yaml: ${yamlPath}`);
 
-  // E2Eシナリオ抽出
-  const scenarios = extractE2EScenariosFromDesign(designMdPath);
+  // YAMLからシナリオを抽出
+  let scenarios;
+  try {
+    scenarios = parseE2ETestsYaml(yamlPath);
+  } catch (error) {
+    console.error(`❌ Error: ${error.message}`);
+    process.exit(1);
+  }
 
   if (scenarios.length === 0) {
-    console.error('❌ No E2E scenarios found in design.md');
-    console.error('   Please add "## E2Eテストシナリオ" section to design.md');
+    console.error('❌ No E2E scenarios found in e2e.yaml');
+    console.error('   Please check the YAML structure');
     process.exit(1);
   }
 
@@ -266,23 +296,38 @@ function main() {
   }
 
   // スクリプト生成
+  let generatedCount = 0;
+  let skippedCount = 0;
+
   scenarios.forEach((scenario, index) => {
-    console.log(`📝 Generating ${scenario.id}: ${scenario.title}`);
+    console.log(`📝 Processing ${scenario.id}: ${scenario.name}`);
 
     const { fileName, content } = generatePlaywrightScript(scenario, specName);
     const filePath = path.join(outputDir, fileName);
 
-    fs.writeFileSync(filePath, content, 'utf-8');
-    console.log(`   ✅ Created: ${filePath}`);
+    // 既存ファイルをスキップ
+    if (fs.existsSync(filePath)) {
+      console.log(`   ⚠️  SKIP: ${fileName} already exists`);
+      skippedCount++;
+    } else {
+      fs.writeFileSync(filePath, content, 'utf-8');
+      console.log(`   ✅ Created: ${fileName}`);
+      generatedCount++;
+    }
   });
 
   console.log('\n========================================');
   console.log('✅ E2E Test Generation Complete!');
   console.log('========================================\n');
 
+  console.log(`📊 Summary:`);
+  console.log(`   Generated: ${generatedCount}`);
+  console.log(`   Skipped:   ${skippedCount}`);
+  console.log(`   Total:     ${scenarios.length}\n`);
+
   console.log('Next steps:');
   console.log(`  1. Review generated tests in: tests/e2e/${specName}/`);
-  console.log(`  2. Run tests: npm run test:e2e tests/e2e/${specName}/`);
+  console.log(`  2. Run tests: npm run test:e2e`);
   console.log(`  3. Customize tests as needed\n`);
 }
 
@@ -291,4 +336,4 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { extractE2EScenariosFromDesign, convertStepToPlaywright };
+module.exports = { parseE2ETestsYaml, convertActionToPlaywright };
