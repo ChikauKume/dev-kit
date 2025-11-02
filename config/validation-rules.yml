@@ -1,0 +1,76 @@
+# バリデーションルール定義ファイル
+# 各モジュールのFormRequestに期待されるバリデーションルールを定義
+#
+# フォーマット:
+# modules:
+#   <ModuleName>:
+#     <RequestClassName>:
+#       context: <registration|authentication|update|delete|other>
+#       fields:
+#         <field_name>:
+#           rules: [<rule1>, <rule2>, ...]
+#           description: "<説明>"
+
+modules:
+  User:
+    # ユーザー登録Request
+    RegisterUserRequest:
+      context: registration
+      description: "新規ユーザー登録時のバリデーション"
+      fields:
+        name:
+          rules: [required, string, min:2, max:255]
+          description: "ユーザー名"
+        email:
+          rules: [required, email, max:255, unique:users,email]
+          description: "メールアドレス（重複禁止）"
+        phone:
+          rules: [nullable, string, 'regex:/^0\d{9,10}$/']
+          description: "電話番号（任意）"
+        password:
+          rules: [required, string, min:8, max:255, 'regex:/^(?=.*[A-Za-z])(?=.*\d).+$/']
+          description: "パスワード（英数字を含む8文字以上）"
+        password_confirmation:
+          rules: [required, same:password]
+          description: "パスワード確認（passwordと一致）"
+        agreeToTerms:
+          rules: [required, accepted]
+          description: "利用規約への同意"
+
+    # ログインRequest
+    LoginUserRequest:
+      context: authentication
+      description: "既存ユーザーのログイン認証"
+      fields:
+        email:
+          rules: [required, email]
+          description: "メールアドレス（uniqueチェック不要）"
+        password:
+          rules: [required]
+          description: "パスワード"
+
+    # ログアウトRequest
+    LogoutUserRequest:
+      context: authentication
+      description: "ユーザーログアウト"
+      fields: {}
+      # フィールドなし（認証済みユーザーのセッション削除のみ）
+
+# 今後追加予定のモジュール例:
+#   Product:
+#     CreateProductRequest:
+#       context: creation
+#       fields:
+#         name:
+#           rules: [required, string, max:255, unique:products,name]
+#         price:
+#           rules: [required, numeric, min:0]
+#
+#   Video:
+#     UploadVideoRequest:
+#       context: creation
+#       fields:
+#         title:
+#           rules: [required, string, max:255]
+#         file:
+#           rules: [required, file, mimes:mp4,mov, max:102400]

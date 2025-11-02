@@ -2,16 +2,16 @@ import React, { useState, useRef, useEffect } from 'react';
 import Icon from '../icons/Icon';
 
 export interface SelectBoxOption {
-  value: string;
+  value: string | number;
   label: string;
 }
 
 export interface SelectBoxProps {
   label?: string;
   name: string;
-  value: string[];
+  value: (string | number)[];
   options: SelectBoxOption[];
-  onChange: (value: string[]) => void;
+  onChange: (value: (string | number)[]) => void;
   onBlur?: () => void;
   placeholder?: string;
   error?: string;
@@ -67,7 +67,7 @@ const SelectBox: React.FC<SelectBoxProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onBlur]);
 
-  const toggleOption = (optionValue: string) => {
+  const toggleOption = (optionValue: string | number) => {
     if (disabled) return;
 
     const newValue = value.includes(optionValue)

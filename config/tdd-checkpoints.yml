@@ -1,0 +1,43 @@
+# TDD Checkpoints Configuration
+# Define test checkpoints for Red → Green → Refactor cycle enforcement
+#
+# Format:
+# feature: <feature-name>
+# checkpoints:
+#   - name: <checkpoint-name>
+#     test: <test-file-path>::<test-method>
+#     status: <pending|red|green|refactored>
+#     notes: <optional-notes>
+
+feature: user-authentication
+checkpoints:
+  - name: "Email validation - required rule"
+    test: "tests/Feature/User/RegisterUserRequestTest.php::test_email_required"
+    status: pending
+    notes: "Verify email field has required validation rule"
+  - name: "Email validation - email format"
+    test: "tests/Feature/User/RegisterUserRequestTest.php::test_email_format"
+    status: pending
+    notes: "Verify email field validates email format"
+  - name: "Email validation - unique constraint"
+    test: "tests/Feature/User/RegisterUserRequestTest.php::test_email_unique"
+    status: pending
+    notes: "Verify email field prevents duplicates"
+  - name: "Password validation - required rule"
+    test: "tests/Feature/User/RegisterUserRequestTest.php::test_password_required"
+    status: pending
+    notes: "Verify password field has required validation rule"
+  - name: "Password validation - minimum length"
+    test: "tests/Feature/User/RegisterUserRequestTest.php::test_password_min_length"
+    status: pending
+    notes: "Verify password must be at least 8 characters"
+  - name: "Password validation - complexity"
+    test: "tests/Feature/User/RegisterUserRequestTest.php::test_password_complexity"
+    status: pending
+    notes: "Verify password contains letters and numbers"
+# Example for other features:
+# feature: product-management
+# checkpoints:
+#   - name: "Product name validation"
+#     test: "tests/Feature/Product/CreateProductRequestTest.php::test_name_required"
+#     status: pending

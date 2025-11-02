@@ -154,8 +154,8 @@ fi
 if command -v jq &> /dev/null; then
     # jqを使ってスクリプトをマージ
     TEMP_FILE=$(mktemp)
-    jq --argfile scripts "$TEMPLATE_DIR/package.json.scripts.json" \
-       '.scripts = (.scripts // {}) + $scripts' \
+    jq --slurpfile scripts "$TEMPLATE_DIR/package.json.scripts.json" \
+       '.scripts = (.scripts // {}) + $scripts[0]' \
        "$PROJECT_ROOT/package.json" > "$TEMP_FILE"
     mv "$TEMP_FILE" "$PROJECT_ROOT/package.json"
     echo -e "${GREEN}✅ npm scripts added to package.json${NC}"
@@ -190,9 +190,61 @@ fi
 echo ""
 
 # ========================================================================
-# 6. 依存関係インストール確認
+# 6. React バージョン統一（白画面防止）
 # ========================================================================
-echo -e "${BLUE}📝 Step 6: Dependencies Check${NC}"
+echo -e "${BLUE}📝 Step 6: React Version Alignment${NC}"
+echo "------------------------------------------------------------------------"
+
+# メインアプリのReactバージョンを取得（dependencies → devDependencies の順でチェック）
+MAIN_REACT_VERSION=$(node -p "
+  const pkg = require('./package.json');
+  const reactVersion = (pkg.dependencies && pkg.dependencies.react) || (pkg.devDependencies && pkg.devDependencies.react) || '';
+  reactVersion;
+" 2>/dev/null || echo "")
+
+if [ -n "$MAIN_REACT_VERSION" ] && [ "$MAIN_REACT_VERSION" != "undefined" ]; then
+    echo -e "${YELLOW}   🔧 Aligning React versions to prevent blank page...${NC}"
+    echo "   Main app React version: $MAIN_REACT_VERSION"
+
+    # ui-componentsのReactバージョンをメインアプリと統一
+    if [ -f "$PROJECT_ROOT/dev-kit/ui-components/package.json" ]; then
+        # まず現在の値を確認
+        CURRENT_UI_REACT=$(node -p "
+          const pkg = require('$PROJECT_ROOT/dev-kit/ui-components/package.json');
+          (pkg.dependencies && pkg.dependencies.react) || 'undefined';
+        " 2>/dev/null || echo "undefined")
+
+        echo "   ui-components current React version: $CURRENT_UI_REACT"
+
+        # "undefined"または空の場合のみ修正
+        if [ "$CURRENT_UI_REACT" = "undefined" ] || [ -z "$CURRENT_UI_REACT" ]; then
+            TEMP_FILE=$(mktemp)
+            jq --arg version "$MAIN_REACT_VERSION" \
+               '.dependencies.react = $version | .dependencies["react-dom"] = $version | .peerDependencies.react = $version | .peerDependencies["react-dom"] = $version' \
+               "$PROJECT_ROOT/dev-kit/ui-components/package.json" > "$TEMP_FILE"
+            mv "$TEMP_FILE" "$PROJECT_ROOT/dev-kit/ui-components/package.json"
+            echo -e "${GREEN}   ✅ ui-components React version aligned to $MAIN_REACT_VERSION${NC}"
+
+            # 依存関係を再インストール
+            echo -e "${YELLOW}   🔧 Reinstalling dependencies...${NC}"
+            npm install
+            echo -e "${GREEN}   ✅ Dependencies reinstalled${NC}"
+        else
+            echo -e "${GREEN}   ✅ ui-components React version already set (skipped)${NC}"
+        fi
+    fi
+else
+    echo -e "${YELLOW}⚠️  React not found in main package.json${NC}"
+    echo -e "${YELLOW}   Please add React to dependencies or devDependencies:${NC}"
+    echo -e "${YELLOW}   npm install --save-dev react react-dom${NC}"
+fi
+
+echo ""
+
+# ========================================================================
+# 7. 依存関係インストール確認
+# ========================================================================
+echo -e "${BLUE}📝 Step 7: Dependencies Check${NC}"
 echo "------------------------------------------------------------------------"
 
 # Playwright がインストールされているか確認
@@ -209,9 +261,9 @@ fi
 echo ""
 
 # ========================================================================
-# 7. TypeScript設定（tsconfig.json, vite-env.d.ts）
+# 8. TypeScript設定（tsconfig.json, vite-env.d.ts）
 # ========================================================================
-echo -e "${BLUE}📝 Step 7: TypeScript Configuration${NC}"
+echo -e "${BLUE}📝 Step 8: TypeScript Configuration${NC}"
 echo "------------------------------------------------------------------------"
 
 # vite-env.d.ts 生成
@@ -243,9 +295,9 @@ echo ""
 
 
 # ========================================================================
-# 8. ui-components テンプレート自動コピー（独自実装防止）
+# 9. ui-components テンプレート自動コピー（独自実装防止）
 # ========================================================================
-echo -e "${BLUE}📝 Step 8: ui-components Template Auto-Copy (Prevent Custom Implementation)${NC}"
+echo -e "${BLUE}📝 Step 9: ui-components Template Auto-Copy (Prevent Custom Implementation)${NC}"
 echo "------------------------------------------------------------------------"
 
 UI_COMPONENTS_SRC="$PROJECT_ROOT/dev-kit/ui-components/src"
@@ -285,11 +337,6 @@ if [ -d "$UI_COMPONENTS_SRC" ]; then
         echo "   Copying styles..."
         mkdir -p "$RESOURCES_CSS"
         cp -r "$UI_COMPONENTS_SRC/styles" "$RESOURCES_CSS/"
-
-        # ui-components.cssをコピー
-        if [ -f "$UI_COMPONENTS_SRC/ui-components.css" ]; then
-            cp "$UI_COMPONENTS_SRC/ui-components.css" "$RESOURCES_CSS/"
-        fi
     fi
 
     # ========================================================================
@@ -447,9 +494,9 @@ fi
 echo ""
 
 # ========================================================================
-# 9. 実行権限付与
+# 10. 実行権限付与
 # ========================================================================
-echo -e "${BLUE}📝 Step 9: Execute Permissions${NC}"
+echo -e "${BLUE}📝 Step 10: Execute Permissions${NC}"
 echo "------------------------------------------------------------------------"
 
 chmod +x "$PROJECT_ROOT/dev-kit/scripts/validate"/*.sh 2>/dev/null || true
@@ -458,8 +505,36 @@ chmod +x "$PROJECT_ROOT/dev-kit/scripts/common"/*.sh 2>/dev/null || true
 chmod +x "$PROJECT_ROOT/dev-kit/scripts/generate"/*.php 2>/dev/null || true
 chmod +x "$PROJECT_ROOT/dev-kit/scripts/generate"/*.cjs 2>/dev/null || true
 chmod +x "$PROJECT_ROOT/dev-kit/scripts/setup"/*.sh 2>/dev/null || true
+chmod +x "$PROJECT_ROOT/dev-kit/scripts/fix"/*.sh 2>/dev/null || true
 
 echo -e "${GREEN}✅ Execute permissions set${NC}"
+
+echo ""
+
+# ========================================================================
+# 11. 自動修正（CSS import削除）
+# ========================================================================
+echo -e "${BLUE}📝 Step 11: Auto-fix Copied Templates${NC}"
+echo "------------------------------------------------------------------------"
+
+# CSS importを自動削除
+CSS_IMPORT_COUNT=0
+for dir in "$RESOURCES_JS/components" "$RESOURCES_JS/Pages"; do
+    if [ -d "$dir" ]; then
+        while IFS= read -r file; do
+            if grep -q "import.*\.css" "$file" 2>/dev/null; then
+                sed -i '' "/import.*\.css/d" "$file"
+                CSS_IMPORT_COUNT=$((CSS_IMPORT_COUNT + 1))
+            fi
+        done < <(find "$dir" -type f \( -name "*.tsx" -o -name "*.ts" \) ! -name "app.tsx" 2>/dev/null)
+    fi
+done
+
+if [ $CSS_IMPORT_COUNT -gt 0 ]; then
+    echo -e "${GREEN}✅ Removed CSS imports from $CSS_IMPORT_COUNT files${NC}"
+else
+    echo -e "${GREEN}✅ No CSS imports found (already clean)${NC}"
+fi
 
 echo ""
 

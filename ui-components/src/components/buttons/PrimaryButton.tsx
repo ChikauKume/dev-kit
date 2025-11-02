@@ -25,7 +25,7 @@ const PrimaryButton = ({
             {...props}
             className={buttonClasses}
             disabled={disabled}
-            dusk={dusk}
+            data-dusk={dusk}
         >
             {children}
         </button>

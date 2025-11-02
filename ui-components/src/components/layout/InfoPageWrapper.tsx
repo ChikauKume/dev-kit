@@ -1,6 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import Icon from '../icons/Icon';
-import { IconName } from '../icons/Icon';
+import React from 'react';
+import Icon, { IconName } from '../icons/Icon';
 
 /**
  * サイドバーメニューアイテムの型定義

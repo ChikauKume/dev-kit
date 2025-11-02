@@ -10,7 +10,7 @@ export interface InputFieldProps {
   label?: string;
 
   /** HTML input type */
-  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search' | 'date' | 'time' | 'datetime-local';
+  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search' | 'date' | 'time' | 'datetime-local' | 'month' | 'week';
 
   /** Input name attribute */
   name: string;
@@ -77,8 +77,8 @@ const InputField: React.FC<InputFieldProps> = ({
   borderColor,
   ...props
 }) => {
-  const [isFocused, setIsFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const inputId = id || `input-${name}`;
 
   // Determine actual input type (handle password visibility toggle)

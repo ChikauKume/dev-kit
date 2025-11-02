@@ -330,7 +330,7 @@ const SignupPage: React.FC<SignupPageProps> = (props) => {
           <InputField
             label="お名前"
             type="text"
-            name="signupName"
+            name="name"
             value={signupName}
             onChange={(e) => handleNameChange(e.target.value)}
             onBlur={(e) => handleNameBlur(e.target.value)}
@@ -342,7 +342,7 @@ const SignupPage: React.FC<SignupPageProps> = (props) => {
           <InputField
             label="メールアドレス"
             type="email"
-            name="signupEmail"
+            name="email"
             value={signupEmail}
             onChange={(e) => handleEmailChange(e.target.value)}
             onBlur={(e) => handleEmailBlur(e.target.value)}
@@ -354,7 +354,7 @@ const SignupPage: React.FC<SignupPageProps> = (props) => {
           <InputField
             label="電話番号"
             type="tel"
-            name="signupPhone"
+            name="phone"
             value={signupPhone}
             onChange={(e) => handlePhoneChange(e.target.value)}
             onBlur={(e) => handlePhoneBlur(e.target.value)}
@@ -365,7 +365,7 @@ const SignupPage: React.FC<SignupPageProps> = (props) => {
           <InputField
             label="パスワード"
             type="password"
-            name="signupPassword"
+            name="password"
             value={signupPassword}
             onChange={(e) => handlePasswordChange(e.target.value)}
             onBlur={(e) => handlePasswordBlur(e.target.value)}
@@ -377,7 +377,7 @@ const SignupPage: React.FC<SignupPageProps> = (props) => {
           <InputField
             label="パスワード確認"
             type="password"
-            name="signupPasswordConfirm"
+            name="password_confirmation"
             value={signupPasswordConfirm}
             onChange={(e) => handlePasswordConfirmChange(e.target.value)}
             onBlur={(e) => handlePasswordConfirmBlur(e.target.value)}
@@ -389,6 +389,7 @@ const SignupPage: React.FC<SignupPageProps> = (props) => {
           <div>
             <label className="remember-me">
               <Checkbox
+                name="agreeToTerms"
                 checked={agreeToTerms}
                 onChange={(e) => handleAgreeToTermsChange(e.target.checked)}
               />

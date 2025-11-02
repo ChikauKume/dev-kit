@@ -107,16 +107,29 @@ if [ ! -f "$PROJECT_ROOT/$ENTRY_POINT" ]; then
     echo "   Missing entry point will cause BLANK PAGE"
     EXIT_CODE=1
 else
-    # TypeScript構文チェック（エントリーポイントのみ）
+    # TypeScript構文チェック（tsconfig.jsonを使用）
     echo "Checking TypeScript syntax in $ENTRY_POINT..."
 
-    if npx tsc --noEmit --skipLibCheck "$PROJECT_ROOT/$ENTRY_POINT" 2>&1 | grep -q "error TS"; then
-        echo "❌ ERROR: Syntax errors in $ENTRY_POINT"
-        echo "   Syntax errors in entry point will cause BLANK PAGE"
-        npx tsc --noEmit --skipLibCheck "$PROJECT_ROOT/$ENTRY_POINT"
-        EXIT_CODE=1
+    # tsconfig.jsonが存在する場合はそれを使用、なければデフォルトのチェック
+    if [ -f "$PROJECT_ROOT/tsconfig.json" ]; then
+        if npx tsc --project "$PROJECT_ROOT/tsconfig.json" --noEmit 2>&1 | grep -q "error TS"; then
+            echo "❌ ERROR: Syntax errors in application code"
+            echo "   Syntax errors in entry point will cause BLANK PAGE"
+            npx tsc --project "$PROJECT_ROOT/tsconfig.json" --noEmit 2>&1 | head -20
+            EXIT_CODE=1
+        else
+            echo "✅ Application code has valid syntax"
+        fi
     else
-        echo "✅ $ENTRY_POINT has valid syntax"
+        # Fallback: 単一ファイルチェック
+        if npx tsc --noEmit --skipLibCheck "$PROJECT_ROOT/$ENTRY_POINT" 2>&1 | grep -q "error TS"; then
+            echo "❌ ERROR: Syntax errors in $ENTRY_POINT"
+            echo "   Syntax errors in entry point will cause BLANK PAGE"
+            npx tsc --noEmit --skipLibCheck "$PROJECT_ROOT/$ENTRY_POINT"
+            EXIT_CODE=1
+        else
+            echo "✅ $ENTRY_POINT has valid syntax"
+        fi
     fi
 
     # createInertiaAppの存在確認
@@ -286,8 +299,8 @@ else
     echo "  3. Fix TypeScript/JavaScript syntax errors"
     echo "  4. Verify @vite and @inertia directives in app.blade.php"
     echo ""
-    echo "💡 For detailed diagnosis, run:"
-    echo "   ./dev-kit/scripts/common/diagnose-blank-page.sh"
+    echo "💡 Run validation again after fixes:"
+    echo "   npm run validate:blank-page"
 fi
 
 echo "========================================================================"

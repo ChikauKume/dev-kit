@@ -48,10 +48,10 @@ execution_mode: command_driven
 
 ```bash
 # キャッシュクリア
-./dev-kit/scripts/common/clear-cache.sh
+npm run cache:clear
 
-# データベースセットアップ
-./dev-kit/scripts/setup-test-database.sh
+# データベース準備（マイグレーション・シーダー実行）
+./vendor/bin/sail artisan migrate:fresh --seed
 ```
 
 **期待結果**:

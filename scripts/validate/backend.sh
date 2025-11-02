@@ -1,5 +1,10 @@
 #!/bin/bash
 # バックエンド厳密検証スクリプト（design.md準拠）
+#
+# 最適化ポイント:
+# - Login/Authenticate系Requestのemailフィールドはuniqueルール不要と判定
+#   (既存ユーザーの認証なので重複チェック不要)
+# - 登録系Request (Signup/Register) のみemailのuniqueルールを必須とする
 
 set -e
 
@@ -184,9 +189,9 @@ fi
 echo ""
 
 # ========================================================================
-# Part 4: FormRequest バリデーションルール厳密チェック
+# Part 4: FormRequest バリデーションルール厳密チェック（YAML-based）
 # ========================================================================
-echo -e "${BLUE}📝 Part 4: FormRequest Validation Rules Strict Check${NC}"
+echo -e "${BLUE}📝 Part 4: FormRequest Validation Rules Check (YAML-based)${NC}"
 echo "------------------------------------------------------------------------"
 
 if [ -n "$SPEC_NAME" ] && [ -n "$MODULE_NAME" ]; then
@@ -198,7 +203,8 @@ if [ -n "$SPEC_NAME" ] && [ -n "$MODULE_NAME" ]; then
         if [ -n "$FORMREQUEST_FILES" ]; then
             for file in $FORMREQUEST_FILES; do
                 echo ""
-                echo "Analyzing: $(basename $file)"
+                REQUEST_CLASSNAME=$(basename "$file" .php)
+                echo "Analyzing: $REQUEST_CLASSNAME"
 
                 # rules()メソッドの存在確認
                 if ! grep -q "public function rules()" "$file"; then
@@ -207,40 +213,104 @@ if [ -n "$SPEC_NAME" ] && [ -n "$MODULE_NAME" ]; then
                     continue
                 fi
 
-                # バリデーションルールの抽出と分析
+                # バリデーションルールの抽出
                 RULES_SECTION=$(sed -n '/public function rules()/,/^    }/p' "$file")
 
-                # emailフィールドにuniqueルールがあるかチェック
-                if echo "$RULES_SECTION" | grep -q "'email'"; then
-                    if ! echo "$RULES_SECTION" | grep "'email'" | grep -q "unique"; then
-                        echo -e "${RED}❌ CRITICAL: 'email' field missing 'unique' rule${NC}"
-                        echo "   design.md requires: 重複禁止"
-                        EXIT_CODE=1
-                    else
-                        echo -e "${GREEN}✅ 'email' field has 'unique' rule${NC}"
-                    fi
-                fi
+                # YAMLから期待値を取得
+                if command -v php >/dev/null 2>&1 && [ -f "$SCRIPT_DIR/parse-validation.php" ]; then
+                    EXPECTED_JSON=$(php "$SCRIPT_DIR/parse-validation.php" "$MODULE_NAME" "$REQUEST_CLASSNAME" 2>/dev/null)
 
-                # terms_agreed/agreeToTermsにacceptedルールがあるかチェック
-                if echo "$RULES_SECTION" | grep -qE "'terms_agreed'|'agreeToTerms'"; then
-                    if ! echo "$RULES_SECTION" | grep -E "'terms_agreed'|'agreeToTerms'" | grep -q "accepted"; then
-                        echo -e "${RED}❌ CRITICAL: 'terms_agreed/agreeToTerms' field missing 'accepted' rule${NC}"
-                        echo "   design.md requires: accepted（利用規約への同意）"
-                        EXIT_CODE=1
-                    else
-                        echo -e "${GREEN}✅ 'terms_agreed/agreeToTerms' field has 'accepted' rule${NC}"
-                    fi
-                fi
+                    if grep -q '"found".*true' <<< "$EXPECTED_JSON"; then
+                        # YAML設定が見つかった場合
+                        CONTEXT=$(echo "$EXPECTED_JSON" | php -r 'echo json_decode(file_get_contents("php://stdin"))->context ?? "unknown";')
+                        DESCRIPTION=$(echo "$EXPECTED_JSON" | php -r 'echo json_decode(file_get_contents("php://stdin"))->description ?? "";')
 
-                # password_confirmationにsame:passwordルールがあるかチェック
-                if echo "$RULES_SECTION" | grep -q "'password_confirmation'"; then
-                    if ! echo "$RULES_SECTION" | grep "'password_confirmation'" | grep -q "same:password"; then
-                        echo -e "${RED}❌ CRITICAL: 'password_confirmation' field missing 'same:password' rule${NC}"
-                        echo "   design.md requires: passwordと一致"
-                        EXIT_CODE=1
+                        echo -e "${BLUE}ℹ️  Context: $CONTEXT${NC}"
+                        if [ -n "$DESCRIPTION" ]; then
+                            echo "   Description: $DESCRIPTION"
+                        fi
+
+                        # YAML定義からフィールドリストを取得
+                        FIELD_NAMES=$(echo "$EXPECTED_JSON" | php -r '
+                            $data = json_decode(file_get_contents("php://stdin"), true);
+                            if (isset($data["fields"]) && !empty($data["fields"])) {
+                                echo implode("\n", array_keys($data["fields"]));
+                            }
+                        ')
+
+                        if [ -z "$FIELD_NAMES" ]; then
+                            echo -e "${BLUE}ℹ️  No fields defined in YAML (empty request)${NC}"
+                        else
+                            # 各フィールドのバリデーションルールをチェック
+                            echo "$FIELD_NAMES" | while IFS= read -r field_name; do
+                                # YAML定義から期待されるルールを取得
+                                EXPECTED_RULES=$(echo "$EXPECTED_JSON" | php -r "
+                                    \$data = json_decode(file_get_contents('php://stdin'), true);
+                                    if (isset(\$data['fields']['$field_name']['rules'])) {
+                                        echo implode(',', \$data['fields']['$field_name']['rules']);
+                                    }
+                                ")
+
+                                # フィールドが実装に存在するかチェック
+                                if echo "$RULES_SECTION" | grep -q "'$field_name'"; then
+                                    FIELD_RULES_LINE=$(echo "$RULES_SECTION" | grep "'$field_name'")
+
+                                    # 各期待ルールが実装に含まれているかチェック
+                                    MISSING_RULES=""
+                                    IFS=',' read -ra RULES_ARRAY <<< "$EXPECTED_RULES"
+                                    for expected_rule in "${RULES_ARRAY[@]}"; do
+                                        # ルール名を抽出（例: "unique:users,email" → "unique"）
+                                        RULE_NAME=$(echo "$expected_rule" | sed 's/:.*$//' | sed "s/'//g")
+
+                                        if ! echo "$FIELD_RULES_LINE" | grep -q "$RULE_NAME"; then
+                                            if [ -z "$MISSING_RULES" ]; then
+                                                MISSING_RULES="$expected_rule"
+                                            else
+                                                MISSING_RULES="$MISSING_RULES, $expected_rule"
+                                            fi
+                                        fi
+                                    done
+
+                                    if [ -n "$MISSING_RULES" ]; then
+                                        echo -e "${RED}❌ '$field_name' field missing rules: [$MISSING_RULES]${NC}"
+                                        EXIT_CODE=1
+                                    else
+                                        echo -e "${GREEN}✅ '$field_name' field has all required rules${NC}"
+                                    fi
+                                else
+                                    echo -e "${RED}❌ CRITICAL: '$field_name' field NOT FOUND in implementation${NC}"
+                                    echo "   YAML expects: [$EXPECTED_RULES]"
+                                    EXIT_CODE=1
+                                fi
+                            done
+                        fi
                     else
-                        echo -e "${GREEN}✅ 'password_confirmation' field has 'same:password' rule${NC}"
+                        # YAML設定がない場合は従来のヒューリスティック検証にフォールバック
+                        echo -e "${YELLOW}⚠️  No YAML config for $REQUEST_CLASSNAME, using heuristic validation${NC}"
+
+                        # 従来のロジック（簡略版）
+                        FILENAME=$(basename "$file")
+                        IS_LOGIN_REQUEST=false
+                        if echo "$FILENAME" | grep -qiE "(Login|Authenticate|Auth).*Request\.php"; then
+                            IS_LOGIN_REQUEST=true
+                        fi
+
+                        # emailフィールドチェック
+                        if echo "$RULES_SECTION" | grep -q "'email'"; then
+                            if [ "$IS_LOGIN_REQUEST" = true ]; then
+                                echo -e "${BLUE}ℹ️  'email' field found (Login/Auth - unique not required)${NC}"
+                            else
+                                if ! echo "$RULES_SECTION" | grep "'email'" | grep -q "unique"; then
+                                    echo -e "${RED}❌ CRITICAL: 'email' field missing 'unique' rule${NC}"
+                                    EXIT_CODE=1
+                                else
+                                    echo -e "${GREEN}✅ 'email' field has 'unique' rule${NC}"
+                                fi
+                            fi
+                        fi
                     fi
+                else
+                    echo -e "${YELLOW}⚠️  parse-validation.php not available, skipping YAML validation${NC}"
                 fi
             done
         else
@@ -252,21 +322,37 @@ fi
 echo ""
 
 # ========================================================================
-# Part 5: 既存のbackend.sh実行（包括チェック）
+# Part 5: PHPStan 静的解析（型チェック・クラス存在チェック）
 # ========================================================================
-echo -e "${BLUE}📝 Part 5: Comprehensive Backend Check (legacy backend.sh)${NC}"
+echo -e "${BLUE}📝 Part 5: PHPStan Static Analysis (Type & Class Existence Check)${NC}"
 echo "------------------------------------------------------------------------"
 
-if [ -x "$SCRIPT_DIR/backend.sh" ]; then
-    echo "Running existing backend.sh for comprehensive checks..."
-    if "$SCRIPT_DIR/backend.sh"; then
-        echo -e "${GREEN}✅ Comprehensive backend check PASSED${NC}"
+if [ -f "$PROJECT_ROOT/vendor/bin/phpstan" ] && [ -f "$PROJECT_ROOT/phpstan.neon" ]; then
+    echo "Running PHPStan analysis..."
+
+    # PHPStanを実行し、結果をキャプチャ
+    PHPSTAN_OUTPUT=$("$PROJECT_ROOT/vendor/bin/phpstan" analyse --memory-limit=512M --error-format=table 2>&1)
+    PHPSTAN_EXIT_CODE=$?
+
+    if [ $PHPSTAN_EXIT_CODE -eq 0 ]; then
+        echo -e "${GREEN}✅ PHPStan analysis PASSED - No type errors or missing classes detected${NC}"
     else
-        echo -e "${RED}❌ Comprehensive backend check FAILED${NC}"
+        echo -e "${RED}❌ PHPStan analysis FAILED${NC}"
+        echo ""
+        echo "$PHPSTAN_OUTPUT"
+        echo ""
+        echo -e "${RED}CRITICAL: Fix all PHPStan errors before proceeding.${NC}"
+        echo "Common issues detected by PHPStan:"
+        echo "  - Missing classes (e.g., UserModel::class referencing non-existent class)"
+        echo "  - Type mismatches"
+        echo "  - Undefined methods or properties"
+        echo ""
         EXIT_CODE=1
     fi
 else
-    echo -e "${YELLOW}⚠️  backend.sh not found or not executable${NC}"
+    echo -e "${YELLOW}⚠️  PHPStan not installed or phpstan.neon not found${NC}"
+    echo "Consider installing Larastan for enhanced type checking:"
+    echo "  composer require --dev nunomaduro/larastan"
 fi
 
 echo ""

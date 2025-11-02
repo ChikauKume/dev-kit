@@ -1,21 +1,21 @@
 import React from 'react';
-import Icon from '../icons/Icon';
+import Icon, { IconName } from '../icons/Icon';
 import '../../styles/components/FlashMessage.css';
 
 interface FlashMessageProps {
   type: 'success' | 'info' | 'warning' | 'danger';
   message: string;
-  icon?: string;
+  icon?: IconName;
   onClose?: () => void;
 }
 
 const FlashMessage: React.FC<FlashMessageProps> = ({ type, message, icon, onClose }) => {
-  const iconName = icon || {
+  const iconName: IconName = icon || ({
     success: 'check',
     info: 'info',
     warning: 'warning',
     danger: 'error'
-  }[type];
+  }[type] as IconName);
 
   const flashClasses = [
     'flash-message',

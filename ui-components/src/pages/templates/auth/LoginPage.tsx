@@ -257,6 +257,7 @@ const LoginPage: React.FC<LoginPageProps> = (props) => {
           {showRememberMe && (
             <label className="remember-me">
               <Checkbox
+                name="remember"
                 checked={rememberMe}
                 onChange={(e) => handleRememberMeChange(e.target.checked)}
               />

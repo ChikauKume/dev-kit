@@ -47,7 +47,7 @@ execution_mode: command_driven
 ### ステップ1: キャッシュクリア
 
 ```bash
-./dev-kit/scripts/common/clear-cache.sh
+npm run cache:clear
 ```
 
 **重要**: 検証前に必ず実行
