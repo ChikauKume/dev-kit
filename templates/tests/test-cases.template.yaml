@@ -8,6 +8,12 @@
 #
 # 配置場所:
 #   dev-kit/docs/specs/{SPEC_NAME}/tests/test-cases.yaml
+#
+# ⚠️ YAML記述上の重要な注意事項:
+#   1. 長い文字列: "あ" * 255 ではなく実際に255文字分記述する
+#   2. ハッシュ値: $ を含む値はシングルクォートで囲む（例: '$2y$10$...'）
+#   3. コロン(:)を含む文字列: ダブルクォートで囲む
+#   詳細は各テンプレートファイル（unit-tests.template.yaml等）を参照
 
 # ===================================================================
 # メタ情報
@@ -37,8 +43,9 @@ test_files:
 # 自動生成コマンド
 # ===================================================================
 generators:
-  phpunit: "npm run generate:tests {SPEC_NAME}"       # PHPUnitテストスケルトン生成
+  phpunit: "npm run generate:phpunit {SPEC_NAME}"     # PHPUnitテストコード生成
   playwright: "npm run generate:e2e {SPEC_NAME}"      # Playwright E2Eテスト生成
+  skeleton: "npm run generate:tests {SPEC_NAME}"      # Clean Architectureスケルトン生成
 
 # ===================================================================
 # テスト実行コマンド

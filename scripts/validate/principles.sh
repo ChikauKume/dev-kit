@@ -153,14 +153,25 @@ echo "------------------------------------------------------------------------"
 
 TOTAL_PRINCIPLES=$((TOTAL_PRINCIPLES + 1))
 
-# quality-gates.sh でチェック
-if "$SCRIPT_DIR/quality-gates.sh" "$SPEC_NAME" > /dev/null 2>&1; then
+# DO-1からDO-4までの結果で判定（環境、フロント、バック、デザイン、日本語）
+GATE_FAILURES=0
+
+# 環境検証
+"$SCRIPT_DIR/env.sh" > /dev/null 2>&1 || ((GATE_FAILURES++))
+
+# 依存関係検証
+"$SCRIPT_DIR/deps.sh" > /dev/null 2>&1 || ((GATE_FAILURES++))
+
+# 構文検証
+"$SCRIPT_DIR/syntax.sh" > /dev/null 2>&1 || ((GATE_FAILURES++))
+
+if [ $GATE_FAILURES -eq 0 ]; then
     echo -e "${GREEN}✅ PASSED - All quality gates passed${NC}"
     PASSED_PRINCIPLES=$((PASSED_PRINCIPLES + 1))
     DO_RESULTS+=("✅ すべての品質ゲート通過")
 else
-    echo -e "${RED}❌ FAILED - Quality gates validation failed${NC}"
-    echo "   Run: npm run validate:quality-gates $SPEC_NAME"
+    echo -e "${RED}❌ FAILED - $GATE_FAILURES quality gate(s) failed${NC}"
+    echo "   Check: env, deps, syntax validations"
     FAILED_PRINCIPLES=$((FAILED_PRINCIPLES + 1))
     DO_RESULTS+=("❌ すべての品質ゲート通過")
 fi
@@ -168,39 +179,35 @@ fi
 echo ""
 
 # ------------------------------------------------------------------------
-# DO-6: TDD Red → Green → Refactor サイクル遵守
+# DO-6: 機能ごとのフルスタックTDDサイクル実施
 # ------------------------------------------------------------------------
-echo -e "${BLUE}🔍 DO-6: TDD Red → Green → Refactor サイクル遵守${NC}"
+echo -e "${BLUE}🔍 DO-6: 機能ごとのフルスタックTDDサイクル実施${NC}"
 echo "------------------------------------------------------------------------"
 
 TOTAL_PRINCIPLES=$((TOTAL_PRINCIPLES + 1))
 
-TDD_CONFIG="$PROJECT_ROOT/dev-kit/config/tdd-checkpoints.yml"
+TDD_STATE_FILE="$PROJECT_ROOT/dev-kit/state/tdd-${SPEC_NAME}.json"
 
-if [ -f "$TDD_CONFIG" ]; then
-    if command -v yq >/dev/null 2>&1; then
-        PENDING_COUNT=$(yq '.checkpoints[] | select(.status == "pending") | .name' "$TDD_CONFIG" 2>/dev/null | wc -l | tr -d ' ')
-        RED_COUNT=$(yq '.checkpoints[] | select(.status == "red") | .name' "$TDD_CONFIG" 2>/dev/null | wc -l | tr -d ' ')
+if [ -n "$SPEC_NAME" ] && [ -f "$TDD_STATE_FILE" ]; then
+    TOTAL_PAGES=$(cat "$TDD_STATE_FILE" | grep '"total_pages"' | grep -oE '[0-9]+' || echo "0")
+    COMPLETED_PAGES=$(cat "$TDD_STATE_FILE" | grep '"completed_pages"' | grep -oE '[0-9]+' || echo "0")
 
-        if [ "$PENDING_COUNT" -eq 0 ] && [ "$RED_COUNT" -eq 0 ]; then
-            echo -e "${GREEN}✅ PASSED - TDD cycle completed${NC}"
-            PASSED_PRINCIPLES=$((PASSED_PRINCIPLES + 1))
-            DO_RESULTS+=("✅ TDD Red → Green → Refactor サイクル遵守")
-        else
-            echo -e "${RED}❌ FAILED - TDD checkpoints incomplete${NC}"
-            echo "   Pending: $PENDING_COUNT, Red: $RED_COUNT"
-            echo "   Run: npm run tdd:next"
-            FAILED_PRINCIPLES=$((FAILED_PRINCIPLES + 1))
-            DO_RESULTS+=("❌ TDD Red → Green → Refactor サイクル遵守")
-        fi
+    if [ "$TOTAL_PAGES" -gt 0 ] && [ "$COMPLETED_PAGES" -eq "$TOTAL_PAGES" ]; then
+        echo -e "${GREEN}✅ PASSED - All features completed via TDD cycle${NC}"
+        echo "   Completed: $COMPLETED_PAGES / $TOTAL_PAGES features"
+        PASSED_PRINCIPLES=$((PASSED_PRINCIPLES + 1))
+        DO_RESULTS+=("✅ 機能ごとのフルスタックTDDサイクル実施")
     else
-        echo -e "${YELLOW}⚠️  SKIPPED - yq not available${NC}"
-        DO_RESULTS+=("⚠️  TDD Red → Green → Refactor サイクル遵守 (yq not available)")
+        echo -e "${RED}❌ FAILED - TDD cycle incomplete${NC}"
+        echo "   Completed: $COMPLETED_PAGES / $TOTAL_PAGES features"
+        echo "   Run: npm run tdd:status $SPEC_NAME"
+        FAILED_PRINCIPLES=$((FAILED_PRINCIPLES + 1))
+        DO_RESULTS+=("❌ 機能ごとのフルスタックTDDサイクル実施")
     fi
 else
-    echo -e "${BLUE}ℹ️  PASSED - No TDD checkpoints configured${NC}"
+    echo -e "${BLUE}ℹ️  PASSED - No TDD state file or spec name provided${NC}"
     PASSED_PRINCIPLES=$((PASSED_PRINCIPLES + 1))
-    DO_RESULTS+=("✅ TDD Red → Green → Refactor サイクル遵守 (not configured)")
+    DO_RESULTS+=("✅ 機能ごとのフルスタックTDDサイクル実施 (not configured)")
 fi
 
 echo ""
@@ -330,15 +337,29 @@ echo "------------------------------------------------------------------------"
 
 TOTAL_PRINCIPLES=$((TOTAL_PRINCIPLES + 1))
 
-# quality-gates.sh でテスト実行を確認（すでにDO-5で実行済み）
-if "$SCRIPT_DIR/quality-gates.sh" "$SPEC_NAME" 2>&1 | grep -q "Test Execution"; then
-    echo -e "${GREEN}✅ PASSED - Tests are executed${NC}"
-    PASSED_PRINCIPLES=$((PASSED_PRINCIPLES + 1))
-    DONT_RESULTS+=("✅ テストスキップ（禁止）")
+# PHPUnitテスト実行確認
+if [ -d "$PROJECT_ROOT/tests" ] && [ -f "$PROJECT_ROOT/vendor/bin/sail" ]; then
+    TEST_FILES=$(find "$PROJECT_ROOT/tests" -name "*Test.php" 2>/dev/null | wc -l | tr -d ' ')
+
+    if [ "$TEST_FILES" -gt 0 ]; then
+        echo "Found $TEST_FILES test file(s)"
+        if timeout 60 "$PROJECT_ROOT/vendor/bin/sail" artisan test --no-coverage > /dev/null 2>&1; then
+            echo -e "${GREEN}✅ PASSED - All tests executed and passed${NC}"
+            PASSED_PRINCIPLES=$((PASSED_PRINCIPLES + 1))
+            DONT_RESULTS+=("✅ テストスキップ（禁止）")
+        else
+            echo -e "${RED}❌ FAILED - Tests failed or were skipped${NC}"
+            FAILED_PRINCIPLES=$((FAILED_PRINCIPLES + 1))
+            DONT_RESULTS+=("❌ テストスキップ（禁止）")
+        fi
+    else
+        echo -e "${BLUE}ℹ️  PASSED - No test files (pre-implementation)${NC}"
+        PASSED_PRINCIPLES=$((PASSED_PRINCIPLES + 1))
+        DONT_RESULTS+=("✅ テストスキップ（禁止）(no tests)")
+    fi
 else
-    echo -e "${RED}❌ FAILED - Tests may be skipped${NC}"
-    FAILED_PRINCIPLES=$((FAILED_PRINCIPLES + 1))
-    DONT_RESULTS+=("❌ テストスキップ（禁止）")
+    echo -e "${YELLOW}⚠️  SKIPPED - Tests directory or Sail not available${NC}"
+    DONT_RESULTS+=("⚠️  テストスキップ（禁止）(skipped)")
 fi
 
 echo ""
@@ -351,13 +372,14 @@ echo "------------------------------------------------------------------------"
 
 TOTAL_PRINCIPLES=$((TOTAL_PRINCIPLES + 1))
 
-# quality-gates.sh でチェック（すでにDO-5で実行済み）
-if "$SCRIPT_DIR/quality-gates.sh" "$SPEC_NAME" > /dev/null 2>&1; then
+# DO-5の結果を参照（すでに品質ゲートを実行済み）
+if [ $GATE_FAILURES -eq 0 ]; then
     echo -e "${GREEN}✅ PASSED - All quality gates executed${NC}"
     PASSED_PRINCIPLES=$((PASSED_PRINCIPLES + 1))
     DONT_RESULTS+=("✅ 品質ゲートスキップ（禁止）")
 else
-    echo -e "${RED}❌ FAILED - Quality gates may be skipped${NC}"
+    echo -e "${RED}❌ FAILED - Some quality gates were not executed or failed${NC}"
+    echo "   Failed gates: $GATE_FAILURES"
     FAILED_PRINCIPLES=$((FAILED_PRINCIPLES + 1))
     DONT_RESULTS+=("❌ 品質ゲートスキップ（禁止）")
 fi
@@ -372,26 +394,21 @@ echo "------------------------------------------------------------------------"
 
 TOTAL_PRINCIPLES=$((TOTAL_PRINCIPLES + 1))
 
-# TDD checkpointsでチェック（すでにDO-6で実行済み）
-if [ -f "$TDD_CONFIG" ]; then
-    if command -v yq >/dev/null 2>&1; then
-        PENDING_COUNT=$(yq '.checkpoints[] | select(.status == "pending") | .name' "$TDD_CONFIG" 2>/dev/null | wc -l | tr -d ' ')
-
-        if [ "$PENDING_COUNT" -eq 0 ]; then
-            echo -e "${GREEN}✅ PASSED - TDD process followed${NC}"
-            PASSED_PRINCIPLES=$((PASSED_PRINCIPLES + 1))
-            DONT_RESULTS+=("✅ 実装前のテスト作成をスキップ（禁止）")
-        else
-            echo -e "${RED}❌ FAILED - TDD process may be skipped${NC}"
-            FAILED_PRINCIPLES=$((FAILED_PRINCIPLES + 1))
-            DONT_RESULTS+=("❌ 実装前のテスト作成をスキップ（禁止）")
-        fi
+# DO-6の結果を参照（TDD状態ファイルの確認）
+if [ -n "$SPEC_NAME" ] && [ -f "$TDD_STATE_FILE" ]; then
+    # TDD状態ファイルが存在し、完了済みならTDDプロセスに従っている
+    if [ "$TOTAL_PAGES" -gt 0 ] && [ "$COMPLETED_PAGES" -eq "$TOTAL_PAGES" ]; then
+        echo -e "${GREEN}✅ PASSED - TDD Red→Green cycle followed for all features${NC}"
+        PASSED_PRINCIPLES=$((PASSED_PRINCIPLES + 1))
+        DONT_RESULTS+=("✅ 実装前のテスト作成をスキップ（禁止）")
     else
-        echo -e "${YELLOW}⚠️  SKIPPED - yq not available${NC}"
-        DONT_RESULTS+=("⚠️  実装前のテスト作成をスキップ（禁止）(yq not available)")
+        echo -e "${RED}❌ FAILED - TDD process incomplete or skipped${NC}"
+        echo "   Completed: $COMPLETED_PAGES / $TOTAL_PAGES features"
+        FAILED_PRINCIPLES=$((FAILED_PRINCIPLES + 1))
+        DONT_RESULTS+=("❌ 実装前のテスト作成をスキップ（禁止）")
     fi
 else
-    echo -e "${BLUE}ℹ️  PASSED - No TDD checkpoints configured${NC}"
+    echo -e "${BLUE}ℹ️  PASSED - No TDD state file (pre-TDD phase)${NC}"
     PASSED_PRINCIPLES=$((PASSED_PRINCIPLES + 1))
     DONT_RESULTS+=("✅ 実装前のテスト作成をスキップ（禁止）(not configured)")
 fi

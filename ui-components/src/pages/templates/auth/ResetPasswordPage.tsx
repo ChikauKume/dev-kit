@@ -188,7 +188,7 @@ const ResetPasswordPage: React.FC<ResetPasswordPageProps> = (props) => {
       />
       <div className="login-screen">
         <div className="login-card">
-          <h2 className="login-title">新しいパスワード設定</h2>
+          <h1 className="login-title">新しいパスワード設定</h1>
         <p className="login-subtitle">新しいパスワードを入力してください</p>
 
         <form className="login-form" onSubmit={handleSubmit} noValidate>

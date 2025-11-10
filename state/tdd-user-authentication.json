@@ -1,0 +1,15 @@
+{
+  "spec": "user-authentication",
+  "pages": {
+    "Login": {"status": "completed", "red": true, "green": true},
+    "Signup": {"status": "in_progress", "red": true, "green": false},
+    "SignupConfirm": {"status": "pending", "red": false, "green": false},
+    "SignupComplete": {"status": "pending", "red": false, "green": false},
+    "Dashboard": {"status": "completed", "red": true, "green": true},
+    "Error404": {"status": "pending", "red": false, "green": false},
+    "Error500": {"status": "pending", "red": false, "green": false}
+  },
+  "current_page": null,
+  "total_pages": 7,
+  "completed_pages": 2
+}

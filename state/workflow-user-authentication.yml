@@ -1,0 +1,24 @@
+# ワークフロー状態ファイル: user-authentication
+# 自動生成日時: 2025-11-07T04:47:56Z
+
+spec_name: user-authentication
+current_step: 2
+retry_count: 0
+total_retries: 0
+status: in_progress
+started_at: "2025-11-07T04:47:56Z"
+last_updated: "2025-11-07T04:48:23Z"
+last_error: null
+
+# ステップ履歴
+history:
+  - step: 1
+    status: completed
+    duration: 0
+    completed_at: "2025-11-07T04:48:13Z"
+
+# フラグ
+flags:
+  escalated: false
+  paused: false
+  completed: false

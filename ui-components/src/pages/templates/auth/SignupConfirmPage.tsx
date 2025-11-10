@@ -93,7 +93,7 @@ const SignupConfirmPage: React.FC<SignupConfirmPageProps> = (props) => {
       />
       <div className="login-screen">
         <div className="login-card">
-          <h2 className="login-title">登録内容の確認</h2>
+          <h1 className="login-title">登録内容の確認</h1>
         <p className="login-subtitle">以下の内容で登録します</p>
 
         <div className="login-form">

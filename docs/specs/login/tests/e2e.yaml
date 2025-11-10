@@ -1,0 +1,196 @@
+# ===================================================================
+# E2E テストケース定義(Playwright) - ログイン機能
+# ===================================================================
+# ⚠️ YAML記述上の重要な注意事項:
+#   1. 長い文字列: "あ" * 255 ではなく実際に255文字分記述する
+#   2. セレクタ: 'button:has-text("登録")' は自動でgetByRole()に変換される
+#   3. text=セレクタ: 'text="エラー"' は自動でgetByText()に変換される
+#   4. ハッシュ値: $ を含む値はシングルクォートで囲む(例: '$2y$10$...')
+# ===================================================================
+
+spec_name: login
+test_type: e2e
+framework: playwright
+
+config:
+  video: on
+  slow_mo: 750
+  base_url: http://127.0.0.1
+  timeout: 30000
+
+scenarios:
+  - id: E2E-001
+    name: ログイン・ダッシュボード表示(正常系)
+    page_name: Login
+    category: normal
+    description: |
+      登録済みユーザーがログインし、ダッシュボードに右上のユーザーメニューにユーザー名が表示されることを確認。
+    prerequisites:
+      - "テストユーザーが登録されていること(email: test@example.com, password: Password123!)"
+    steps:
+      - action: navigate
+        url: /login
+        description: ログイン画面にアクセス
+      - action: assert
+        selector: h1
+        expected: "ログイン"
+        description: ログイン画面が表示されることを確認
+      - action: type
+        selector: input[name="email"]
+        value: "test@example.com"
+        description: メールアドレスを入力
+      - action: type
+        selector: input[name="password"]
+        value: "Password123!"
+        description: パスワードを入力
+      - action: click
+        selector: button[type="submit"]
+        description: ログインボタンをクリック
+      - action: wait_for_navigation
+        url: /dashboard
+        description: ダッシュボードに遷移することを確認
+      - action: assert
+        selector: h1
+        expected: "ダッシュボード"
+        description: ダッシュボードが表示されることを確認
+      - action: assert_text_contains
+        selector: .user-button
+        expected: "山田 太郎"
+        description: 右上ユーザーメニューにユーザー名が表示されることを確認
+    expected_results:
+      - ログインが正常に完了すること
+      - ダッシュボードに遷移すること
+      - ダッシュボードにユーザー名が表示されること
+    validations:
+      - session:
+          authenticated: true
+          user_email: "test@example.com"
+
+  - id: E2E-002
+    name: ログアウトとセッション無効化(正常系)
+    page_name: Dashboard
+    category: normal
+    description: |
+      ログイン済みユーザーがログアウトし、セッションが無効化されることを確認。
+      ダッシュボードへのアクセスがブロックされることもテスト。
+    prerequisites:
+      - テストユーザーでログイン済みであること
+      - ダッシュボードに表示されていること
+    steps:
+      - action: navigate
+        url: /dashboard
+        description: ダッシュボードにアクセス
+      - action: assert
+        selector: h1
+        expected: "ダッシュボード"
+        description: ダッシュボードが表示されることを確認
+      - action: click
+        selector: button:has-text("ログアウト")
+        description: ログアウトボタンをクリック
+      - action: wait_for_navigation
+        url: /login
+        description: ログイン画面にリダイレクトされることを確認
+      - action: assert
+        selector: h1
+        expected: "ログイン"
+        description: ログイン画面が表示されることを確認
+      - action: navigate
+        url: /dashboard
+        description: ダッシュボードに直接アクセスを試行
+      - action: wait_for_navigation
+        url: /login
+        description: ログイン画面にリダイレクトされることを確認(認証が無効化されている)
+    expected_results:
+      - ログアウトが正常に完了すること
+      - ログイン画面にリダイレクトされること
+      - セッションが無効化されること
+      - ダッシュボードへのアクセスがブロックされること
+    validations:
+      - session:
+          authenticated: false
+
+  - id: E2E-003
+    name: ログイン失敗(異常系)
+    page_name: Login
+    category: error
+    description: |
+      誤った認証情報でログインを試行した場合、エラーメッセージが表示され、
+      ログインできないことを確認。
+    prerequisites:
+      - ログイン画面にアクセスできること
+    steps:
+      - action: navigate
+        url: /login
+        description: ログイン画面にアクセス
+      - action: assert
+        selector: h1
+        expected: "ログイン"
+        description: ログイン画面が表示されることを確認
+      - action: type
+        selector: input[name="email"]
+        value: "nonexistent@example.com"
+        description: 存在しないメールアドレスを入力
+      - action: type
+        selector: input[name="password"]
+        value: "WrongPassword123!"
+        description: 誤ったパスワードを入力
+      - action: click
+        selector: button[type="submit"]
+        description: ログインボタンをクリック
+      - action: wait
+        duration: 1000
+        description: エラーメッセージの表示を待つ
+      - action: assert_url
+        expected: /login
+        description: ログイン画面から遷移しないことを確認
+      - action: assert_visible
+        selector: text="メールアドレスまたはパスワードが正しくありません"
+        description: 認証エラーメッセージが表示されることを確認
+    expected_results:
+      - ログインが失敗すること
+      - ログイン画面から遷移しないこと
+      - 認証エラーメッセージが表示されること
+      - ダッシュボードにアクセスできないこと
+    validations:
+      - session:
+          authenticated: false
+      - database:
+          table: failed_login_attempts
+          conditions:
+            email: "nonexistent@example.com"
+          assertion: record_created
+
+  - id: E2E-004
+    name: 認証済みユーザーのログイン画面アクセス(異常系)
+    page_name: Login
+    category: error
+    description: |
+      ログイン済みユーザーが /login にアクセスした場合、
+      /dashboard にリダイレクトされることを確認。
+      guest ミドルウェアの動作テスト。
+    prerequisites:
+      - テストユーザーでログイン済みであること
+    steps:
+      - action: navigate
+        url: /dashboard
+        description: ダッシュボードにアクセス(ログイン確認)
+      - action: assert
+        selector: h1
+        expected: "ダッシュボード"
+        description: ダッシュボードが表示されることを確認(ログイン済み)
+      - action: navigate
+        url: /login
+        description: ログイン画面にアクセスを試行
+      - action: wait_for_navigation
+        url: /dashboard
+        description: ダッシュボードにリダイレクトされることを確認
+      - action: assert
+        selector: h1
+        expected: "ダッシュボード"
+        description: ダッシュボードが表示されることを確認
+    expected_results:
+      - ログイン済みユーザーはログイン画面にアクセスできないこと
+      - ダッシュボードにリダイレクトされること
+    validations:
+      - session:
+          authenticated: true

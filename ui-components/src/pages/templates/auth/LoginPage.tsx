@@ -219,7 +219,7 @@ const LoginPage: React.FC<LoginPageProps> = (props) => {
       />
       <div className="login-screen">
         <div className="login-card">
-          <h2 className="login-title">ログイン</h2>
+          <h1 className="login-title">ログイン</h1>
         <p className="login-subtitle">アカウントにログインしてください</p>
 
         <form className="login-form" onSubmit={handleSubmit} noValidate>

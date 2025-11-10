@@ -1,0 +1,35 @@
+# ワークフロー自動実行の制限設定
+# AI完全自動化で無限ループを防ぐための設定
+
+# リトライ上限
+retry_limits:
+  per_step: 3              # 各ステップ最大3回リトライ
+  total_workflow: 10       # ワークフロー全体で最大10回リトライ
+  escalation_threshold: 3  # 3回失敗で人間にエスカレーション
+
+# タイムアウト設定（秒）
+timeout:
+  step_1: 300    # 作業依頼受領: 5分
+  step_2: 600    # 初期設定: 10分
+  step_3: 900    # 環境検証: 15分
+  step_4: 1200   # スケルトン生成: 20分
+  step_5: 300    # Red状態確認: 5分
+  step_6: 1800   # フロントエンド実装: 30分
+  step_7: 600    # フロントエンド検証: 10分
+  step_8: 2400   # バックエンド実装: 40分
+  step_9: 600    # バックエンド検証: 10分
+  step_10: 3600  # 全テスト実行: 60分
+  step_11: 600   # 品質確認: 10分
+  step_12: 60    # 完了報告: 1分
+
+# 自動修復試行回数
+auto_fix:
+  max_attempts: 2          # 自動修復を最大2回試行
+  wait_between_attempts: 5 # 試行間の待機時間（秒）
+
+# エスカレーション設定
+escalation:
+  notify_on_retry: false   # リトライ時に通知しない
+  notify_on_timeout: true  # タイムアウト時に通知
+  notify_on_limit: true    # リトライ上限到達時に通知
+  notify_on_error: true    # 想定外のエラー時に通知

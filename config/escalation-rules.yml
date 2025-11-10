@@ -1,0 +1,143 @@
+# 人間へのエスカレーション条件設定
+# AI自動実行で人間の介入が必要になる条件を定義
+
+conditions:
+  # リトライ上限到達
+  - trigger: retry_limit_exceeded
+    action: notify_human
+    priority: high
+    message: "ステップ{step}を{count}回リトライしましたが失敗しました。"
+    details: |
+      最後のエラー: {last_error}
+      実行履歴:
+      {history}
+
+      推奨アクション:
+      1. エラーログを確認
+      2. 仕様書（design.md）の矛盾をチェック
+      3. 手動で修正が必要な可能性
+
+  # タイムアウト超過
+  - trigger: timeout_exceeded
+    action: notify_human
+    priority: high
+    message: "ステップ{step}が{timeout}秒以内に完了しませんでした。"
+    details: |
+      実行時間: {elapsed}秒
+      タイムアウト設定: {timeout}秒
+      最終状態: {status}
+
+      推奨アクション:
+      1. タイムアウト設定を見直す（dev-kit/config/workflow-limits.yml）
+      2. 処理が重すぎる可能性を確認
+      3. バックグラウンドプロセスの状態を確認
+
+  # 想定外のエラー
+  - trigger: unknown_error
+    action: notify_human
+    priority: critical
+    message: "想定外のエラーが発生しました: {error}"
+    details: |
+      エラー種別: {error_type}
+      スタックトレース:
+      {stack_trace}
+
+      推奨アクション:
+      1. ログファイルの確認
+      2. 開発環境の状態確認
+      3. 必要に応じてワークフローをロールバック
+
+  # 依存関係の欠如
+  - trigger: dependency_missing
+    action: auto_install
+    fallback: notify_human
+    priority: medium
+    message: "必要な依存関係が見つかりません: {dependency}"
+    details: |
+      欠けている依存: {dependency}
+      必要なバージョン: {version}
+
+      自動修復:
+      1. npm install {dependency} を試行
+      2. composer require {dependency} を試行
+      3. 失敗した場合は人間に通知
+
+  # 仕様書の矛盾
+  - trigger: validation_contradiction
+    action: notify_human
+    priority: high
+    message: "仕様書に矛盾があります: {details}"
+    details: |
+      矛盾箇所:
+      {contradiction_details}
+
+      影響範囲:
+      - ファイル: {affected_files}
+      - ステップ: {affected_steps}
+
+      推奨アクション:
+      1. design.md を確認
+      2. phpunit.yaml と e2e.yaml の整合性を確認
+      3. 仕様を修正してワークフローを再実行
+
+  # テスト失敗率が高い
+  - trigger: high_test_failure_rate
+    action: notify_human
+    priority: high
+    message: "テスト失敗率が{threshold}%を超えました（現在: {rate}%）"
+    details: |
+      失敗テスト数: {failed_count} / {total_count}
+      失敗率: {rate}%
+      閾値: {threshold}%
+
+      主な失敗原因:
+      {failure_summary}
+
+      推奨アクション:
+      1. 大規模な設計変更が必要な可能性
+      2. 仕様書の見直しを検討
+      3. 一度クリーンアップしてやり直す
+
+  # ビルドエラー
+  - trigger: build_error
+    action: auto_fix
+    fallback: notify_human
+    priority: high
+    message: "ビルドエラーが発生しました"
+    details: |
+      エラー内容:
+      {build_error}
+
+      自動修復試行:
+      1. npm run dev:cleanup を実行
+      2. node_modules を削除して npm install
+      3. vite キャッシュをクリア
+      4. 失敗した場合は人間に通知
+
+  # データベースエラー
+  - trigger: database_error
+    action: notify_human
+    priority: critical
+    message: "データベースエラーが発生しました: {error}"
+    details: |
+      エラー種別: {db_error_type}
+      エラーメッセージ: {error_message}
+
+      推奨アクション:
+      1. Laravel Sailコンテナの状態を確認
+      2. マイグレーション状態を確認
+      3. データベース接続設定を確認
+
+# 通知方法の設定
+notification:
+  method: console  # console, file, slack, email
+  log_file: "dev-kit/logs/escalation.log"
+  include_context: true
+  include_state_file: true
+  include_last_n_logs: 50
+
+# エスカレーション後の動作
+post_escalation:
+  pause_workflow: true     # ワークフローを一時停止
+  save_state: true         # 状態を保存
+  create_checkpoint: true  # Gitチェックポイントを作成（任意）

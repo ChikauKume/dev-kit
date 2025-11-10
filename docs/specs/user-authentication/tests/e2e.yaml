@@ -1,3 +1,13 @@
+# ===================================================================
+# E2E テストケース定義（Playwright）
+# ===================================================================
+# ⚠️ YAML記述上の重要な注意事項:
+#   1. 長い文字列: "あ" * 255 ではなく実際に255文字分記述する
+#   2. セレクタ: 'button:has-text("登録")' は自動でgetByRole()に変換される
+#   3. text=セレクタ: 'text="エラー"' は自動でgetByText()に変換される
+#   4. ハッシュ値: $ を含む値はシングルクォートで囲む（例: '$2y$10$...'）
+# ===================================================================
+
 spec_name: user-authentication
 test_type: e2e
 framework: playwright
@@ -11,6 +21,7 @@ config:
 scenarios:
   - id: E2E-001
     name: ユーザー登録フロー（正常系）
+    page_name: Signup
     category: normal
     description: |
       新規ユーザーが3ステップで正常に登録できることを確認。
@@ -106,6 +117,7 @@ scenarios:
 
   - id: E2E-002
     name: 確認画面から登録画面に戻る（正常系）
+    page_name: SignupConfirm
     category: normal
     description: |
       確認画面から「戻る」ボタンで登録画面に戻った際、
@@ -203,11 +215,12 @@ scenarios:
 
   - id: E2E-003
     name: ログイン・ダッシュボード表示（正常系）
+    page_name: Login
     category: normal
     description: |
       登録済みユーザーがログインし、ダッシュボードに右上のユーザーメニューにユーザー名が表示されることを確認。
     prerequisites:
-      - テストユーザーが登録されていること（email: test@example.com, password: Password123!）
+      - "テストユーザーが登録されていること（email: test@example.com, password: Password123!）"
     steps:
       - action: navigate
         url: /login
@@ -249,6 +262,7 @@ scenarios:
 
   - id: E2E-004
     name: ログアウトとセッション無効化（正常系）
+    page_name: Dashboard
     category: normal
     description: |
       ログイン済みユーザーがログアウトし、セッションが無効化されることを確認。
@@ -291,6 +305,7 @@ scenarios:
 
   - id: E2E-005
     name: バリデーションエラー表示（異常系）
+    page_name: Signup
     category: error
     description: |
       不正なデータを入力した場合、バリデーションエラーが正しく表示されることを確認。
@@ -356,6 +371,7 @@ scenarios:
 
   - id: E2E-006
     name: ログイン失敗（異常系）
+    page_name: Login
     category: error
     description: |
       誤った認証情報でログインを試行した場合、エラーメッセージが表示され、
@@ -406,6 +422,7 @@ scenarios:
 
   - id: E2E-007
     name: メールアドレス重複チェック（異常系→正常系）
+    page_name: Signup
     category: error
     description: |
       既存ユーザーと同じメールアドレスで登録試行 → エラー表示。
@@ -481,6 +498,7 @@ scenarios:
 
   - id: E2E-008
     name: 電話番号なしでの登録（正常系）
+    page_name: Signup
     category: normal
     description: |
       電話番号（任意項目）を入力せずに登録完了できることを確認。
@@ -550,6 +568,7 @@ scenarios:
 
   - id: E2E-009
     name: 全角数字→半角数字自動変換（正常系）
+    page_name: Signup
     category: normal
     description: |
       電話番号入力時、全角数字が自動的に半角数字に変換されることを確認。
@@ -618,6 +637,7 @@ scenarios:
 
   - id: E2E-010
     name: 確認画面への直接アクセス拒否（異常系）
+    page_name: SignupConfirm
     category: error
     description: |
       セッションデータなしで /signup/confirm に直接アクセスした場合、
@@ -648,6 +668,7 @@ scenarios:
 
   - id: E2E-011
     name: 完了画面への直接アクセス拒否（異常系）
+    page_name: SignupComplete
     category: error
     description: |
       セッションデータなしで /signup/complete に直接アクセスした場合、
@@ -675,6 +696,7 @@ scenarios:
 
   - id: E2E-012
     name: 認証済みユーザーのログイン画面アクセス（異常系）
+    page_name: Login
     category: error
     description: |
       ログイン済みユーザーが /login にアクセスした場合、
@@ -709,6 +731,7 @@ scenarios:
 
   - id: E2E-013
     name: 認証済みユーザーの登録画面アクセス（異常系）
+    page_name: Signup
     category: error
     description: |
       ログイン済みユーザーが /signup にアクセスした場合、

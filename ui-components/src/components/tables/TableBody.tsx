@@ -89,7 +89,7 @@ export default function TableBody<T = any>({
                 <table className="min-w-full bg-white" style={{ tableLayout: 'fixed', width: '750px' }}>
                     <colgroup>
                         {columns.map((column) => {
-                            const width = getColumnWidth(column, config);
+                            const width = getColumnWidth(column, config as any);
                             // Tailwind CSSクラスで幅を指定する代わりにstyleで直接指定
                             return (
                                 <col key={column.key} style={{ width, minWidth: width, maxWidth: width }} />

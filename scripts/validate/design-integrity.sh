@@ -36,6 +36,12 @@ if [ -z "$SPEC_NAME" ]; then
     exit 1
 fi
 
+# パストラバーサル対策
+if [[ "$SPEC_NAME" =~ \.\./|^/ ]]; then
+    echo -e "${RED}❌ エラー: 不正な仕様名が指定されています${NC}"
+    exit 1
+fi
+
 DESIGN_FILE="$PROJECT_ROOT/dev-kit/docs/specs/$SPEC_NAME/design.md"
 
 if [ ! -f "$DESIGN_FILE" ]; then

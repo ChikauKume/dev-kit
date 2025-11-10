@@ -21,6 +21,7 @@ interface PageProps {
             id?: number;
         };
     };
+    [key: string]: any;
 }
 
 declare global {

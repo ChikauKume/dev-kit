@@ -37,9 +37,9 @@ export default function TabNavigation({
     className = '',
     config = {},
     integrated = false
-}: TabNavigationProps): JSX.Element {
+}: TabNavigationProps): React.ReactElement {
     // 統一スクロールバースタイルを生成
-    const scrollbarStyles = generateScrollbarStyles(config, 'tab-navigation-scrollbar');
+    const scrollbarStyles = generateScrollbarStyles(config as any, 'tab-navigation-scrollbar');
 
     // スタイルをheadに動的追加
     useEffect(() => {

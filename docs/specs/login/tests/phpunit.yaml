@@ -1,0 +1,293 @@
+# ===================================================================
+# PHPUnit テストケース定義 - ログイン機能
+# ===================================================================
+# ⚠️ YAML記述上の重要な注意事項:
+#   1. 長い文字列: "あ" * 255 ではなく実際に255文字分記述する
+#   2. ハッシュ値: $ を含む値はシングルクォートで囲む(例: '$2y$10$...')
+#   3. null値: クォート不要(例: value: null)
+# ===================================================================
+
+spec_name: login
+test_type: phpunit
+framework: phpunit
+
+# UseCase定義
+usecases:
+  - name: LoginUser
+    class: App\Modules\User\Application\UseCases\LoginUser
+    description: ログインUseCase
+    parameters:
+      - name: email
+        type: string
+        validations:
+          - required
+          - email
+      - name: password
+        type: string
+        validations:
+          - required
+
+  - name: LogoutUser
+    class: App\Modules\User\Application\UseCases\LogoutUser
+    description: ログアウトUseCase
+    parameters: []
+
+# Unitテストケース
+unit_tests:
+  - suite: Application/UseCases/LoginUser
+    description: LoginUser UseCaseのテスト
+    tests:
+      - name: 正しい認証情報でログインできる
+        category: normal
+        setup:
+          - create_user:
+              email: "test@example.com"
+              password: "Password123!"
+        input:
+          email: "test@example.com"
+          password: "Password123!"
+        expected: success
+        assertion: ログインが成功し、Userエンティティが返される
+
+      - name: メールアドレスが存在しない場合にAuthenticationExceptionがスローされる
+        category: error
+        input:
+          email: "nonexistent@example.com"
+          password: "Password123!"
+        expected: AuthenticationException
+        assertion: AuthenticationExceptionがスローされる
+
+      - name: パスワードが誤っている場合にAuthenticationExceptionがスローされる
+        category: error
+        setup:
+          - create_user:
+              email: "test@example.com"
+              password: "Password123!"
+        input:
+          email: "test@example.com"
+          password: "WrongPassword123!"
+        expected: AuthenticationException
+        assertion: AuthenticationExceptionがスローされる
+
+      - name: メールアドレスが空の場合にValidationExceptionがスローされる
+        category: error
+        input:
+          email: ""
+          password: "Password123!"
+        expected: ValidationException
+        assertion: ValidationExceptionがスローされ、emailフィールドにエラーがある
+
+      - name: パスワードが空の場合にValidationExceptionがスローされる
+        category: error
+        input:
+          email: "test@example.com"
+          password: ""
+        expected: ValidationException
+        assertion: ValidationExceptionがスローされ、passwordフィールドにエラーがある
+
+  - suite: Application/UseCases/LogoutUser
+    description: LogoutUser UseCaseのテスト
+    tests:
+      - name: ログアウトが正常に実行できる
+        category: normal
+        setup:
+          - login_user:
+              email: "test@example.com"
+              password: "Password123!"
+        expected: success
+        assertion: ログアウトが成功し、セッションが破棄される
+
+# Featureテストケース
+feature_tests:
+  - suite: Presentation/Controllers/AuthController
+    method: login
+    description: ログイン処理のテスト
+    tests:
+      - name: 正しい認証情報でログインできる
+        category: normal
+        setup:
+          - create_user:
+              email: "test@example.com"
+              password: "Password123!"
+        request:
+          method: POST
+          url: /login
+          data:
+            email: "test@example.com"
+            password: "Password123!"
+        expected:
+          status: 302
+          redirect: /dashboard
+          authenticated: true
+        assertion: ログインが成功し、ダッシュボードにリダイレクトされる
+
+      - name: 誤った認証情報でログイン失敗する
+        category: error
+        request:
+          method: POST
+          url: /login
+          data:
+            email: "nonexistent@example.com"
+            password: "WrongPassword123!"
+        expected:
+          status: 302
+          redirect: /login
+          errors:
+            - email
+          database_records:
+            - table: failed_login_attempts
+              conditions:
+                email: "nonexistent@example.com"
+        assertion: ログインが失敗し、ログイン画面にリダイレクトされ、失敗ログが記録される
+
+      - name: 存在するメールアドレスで誤ったパスワードの場合にログイン失敗する
+        category: error
+        setup:
+          - create_user:
+              email: "test@example.com"
+              password: "Password123!"
+        request:
+          method: POST
+          url: /login
+          data:
+            email: "test@example.com"
+            password: "WrongPassword123!"
+        expected:
+          status: 302
+          redirect: /login
+          errors:
+            - email
+          database_records:
+            - table: failed_login_attempts
+              conditions:
+                email: "test@example.com"
+        assertion: ログインが失敗し、ログイン画面にリダイレクトされ、失敗ログが記録される
+
+      - name: バリデーションエラーでログイン画面に戻る
+        category: error
+        request:
+          method: POST
+          url: /login
+          data:
+            email: ""
+            password: ""
+        expected:
+          status: 302
+          redirect: /login
+          errors:
+            - email
+            - password
+        assertion: バリデーションエラーが発生し、ログイン画面にリダイレクトされる
+
+  - suite: Presentation/Controllers/AuthController
+    method: logout
+    description: ログアウト処理のテスト
+    tests:
+      - name: ログアウトが正常に実行できる
+        category: normal
+        setup:
+          - create_user:
+              email: "test@example.com"
+              password: "Password123!"
+          - login_user:
+              email: "test@example.com"
+              password: "Password123!"
+        request:
+          method: POST
+          url: /logout
+        expected:
+          status: 302
+          redirect: /login
+          authenticated: false
+        assertion: ログアウトが成功し、セッションが破棄され、ログイン画面にリダイレクトされる
+
+  - suite: Presentation/Middleware/GuestMiddleware
+    description: Guestミドルウェアのテスト(認証済みユーザーのアクセス制御)
+    tests:
+      - name: 未認証ユーザーは通過できる
+        category: normal
+        request:
+          method: GET
+          url: /login
+        expected:
+          status: 200
+        assertion: 未認証ユーザーはログイン画面にアクセスできる
+
+      - name: 認証済みユーザーはログイン画面にアクセスできずダッシュボードにリダイレクトされる
+        category: normal
+        setup:
+          - create_user:
+              email: "test@example.com"
+              password: "Password123!"
+          - login_user:
+              email: "test@example.com"
+              password: "Password123!"
+        request:
+          method: GET
+          url: /login
+        expected:
+          status: 302
+          redirect: /dashboard
+        assertion: 認証済みユーザーはダッシュボードにリダイレクトされる
+
+  - suite: Presentation/Middleware/AuthMiddleware
+    description: Authミドルウェアのテスト(未認証ユーザーのアクセス制御)
+    tests:
+      - name: 認証済みユーザーは通過できる
+        category: normal
+        setup:
+          - create_user:
+              email: "test@example.com"
+              password: "Password123!"
+          - login_user:
+              email: "test@example.com"
+              password: "Password123!"
+        request:
+          method: GET
+          url: /dashboard
+        expected:
+          status: 200
+        assertion: 認証済みユーザーはダッシュボードにアクセスできる
+
+      - name: 未認証ユーザーはダッシュボードにアクセスできずログイン画面にリダイレクトされる
+        category: error
+        request:
+          method: GET
+          url: /dashboard
+        expected:
+          status: 302
+          redirect: /login
+        assertion: 未認証ユーザーはログイン画面にリダイレクトされる
+
+  - suite: Presentation/Controllers/DashboardController
+    description: DashboardControllerのテスト
+    tests:
+      - name: ダッシュボードが表示され、ユーザー名が渡される
+        category: normal
+        setup:
+          - create_user:
+              email: "test@example.com"
+              password: "Password123!"
+              name: "山田 太郎"
+          - login_user:
+              email: "test@example.com"
+              password: "Password123!"
+        request:
+          method: GET
+          url: /dashboard
+        expected:
+          status: 200
+          view: dashboard
+          view_data:
+            userName: "山田 太郎"
+        assertion: ダッシュボードが表示され、ログイン中のユーザー名が渡される
+
+      - name: 認証されていない場合はログイン画面にリダイレクトされる
+        category: error
+        request:
+          method: GET
+          url: /dashboard
+        expected:
+          status: 302
+          redirect: /login
+        assertion: 未認証ユーザーはログイン画面にリダイレクトされる

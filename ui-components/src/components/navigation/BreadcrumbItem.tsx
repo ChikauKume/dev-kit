@@ -1,5 +1,5 @@
 import React from 'react';
-import Icon from '../icons/Icon';
+import Icon, { IconName } from '../icons/Icon';
 
 export interface BreadcrumbItemMetadata {
     icon?: string;
@@ -28,8 +28,8 @@ export default function BreadcrumbItem({
     isLast,
     separator,
     showSeparator = true
-}: BreadcrumbItemProps): JSX.Element {
-    const renderIcon = (): JSX.Element | null => {
+}: BreadcrumbItemProps): React.ReactElement {
+    const renderIcon = (): React.ReactElement | null => {
         const iconName = item.metadata?.icon;
 
         if (!iconName) return null;
@@ -41,18 +41,18 @@ export default function BreadcrumbItem({
             // その他は直接使用（storageは既にIconコンポーネントに存在）
         };
 
-        const mappedIconName = iconMapping[iconName] || iconName;
+        const mappedIconName = (iconMapping[iconName] || iconName) as IconName;
 
         return <Icon name={mappedIconName} className="w-4 h-4" />;
     };
 
-    const renderSeparator = (): JSX.Element | null => {
+    const renderSeparator = (): React.ReactElement | null => {
         if (!showSeparator) return null;
 
         return <Icon name="chevron-right" className="w-3 h-3 text-gray-400 flex-shrink-0" />;
     };
 
-    const renderContent = (): JSX.Element => {
+    const renderContent = (): React.ReactElement => {
         const content = (
             <span className="flex items-center space-x-1">
                 {renderIcon()}

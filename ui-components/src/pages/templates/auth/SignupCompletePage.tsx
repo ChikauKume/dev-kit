@@ -77,7 +77,7 @@ const SignupCompletePage: React.FC<SignupCompletePageProps> = (props) => {
           }}>
             <Icon name="check-circle" style={{ width: '80px', height: '80px', color: '#10b981' }} />
           </div>
-          <h2 className="login-title">アカウント登録完了</h2>
+          <h1 className="login-title">アカウント登録完了</h1>
           <p className="login-subtitle">
             ご登録いただきありがとうございます。
           </p>

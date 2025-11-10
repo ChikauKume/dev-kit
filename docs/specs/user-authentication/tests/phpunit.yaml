@@ -1,3 +1,12 @@
+# ===================================================================
+# PHPUnit テストケース定義
+# ===================================================================
+# ⚠️ YAML記述上の重要な注意事項:
+#   1. 長い文字列: "あ" * 255 ではなく実際に255文字分記述する
+#   2. ハッシュ値: $ を含む値はシングルクォートで囲む（例: '$2y$10$...'）
+#   3. null値: クォート不要（例: value: null）
+# ===================================================================
+
 spec_name: user-authentication
 test_type: phpunit
 framework: phpunit
@@ -168,7 +177,7 @@ unit_tests:
       - name: 正常な名前（255文字）でNameオブジェクトが生成できる
         category: normal
         input:
-          name: "あ" * 255
+          name: "ああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ"
         expected: success
         assertion: Nameオブジェクトが生成され、getValueで取得できる
 
@@ -189,7 +198,7 @@ unit_tests:
       - name: 256文字以上の名前でInvalidNameExceptionがスローされる
         category: error
         input:
-          name: "あ" * 256
+          name: "あああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ"
         expected: InvalidNameException
         assertion: InvalidNameExceptionがスローされる（最大255文字）
 
@@ -372,7 +381,7 @@ unit_tests:
       - name: 名前が255文字超過でValidationExceptionがスローされる
         category: error
         input:
-          name: "あ" * 256
+          name: "あああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ"
           email: "test@example.com"
           phone: null
           password: "Password123!"
@@ -686,7 +695,7 @@ feature_tests:
           - set_session:
               signupName: "佐藤 花子"
               signupEmail: "hanako@example.com"
-              signupPassword: "$2y$10$HashedPasswordExample"
+              signupPassword: '$2y$10$HashedPasswordExample'
         request:
           method: POST
           url: /signup/back
@@ -712,7 +721,7 @@ feature_tests:
               signupName: "山田 太郎"
               signupEmail: "test@example.com"
               signupPhone: "08012345678"
-              signupPassword: "$2y$10$HashedPasswordExample"
+              signupPassword: '$2y$10$HashedPasswordExample'
         request:
           method: POST
           url: /signup/confirm
@@ -979,7 +988,7 @@ feature_tests:
             name: "田中 花子"
             email: "tanaka@example.com"
             phone: "09012345678"
-            password: "$2y$10$HashedPasswordExample"
+            password: '$2y$10$HashedPasswordExample'
             role: "user"
         expected: success
         assertion: ユーザーがデータベースに保存される

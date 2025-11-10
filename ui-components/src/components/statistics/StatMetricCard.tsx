@@ -53,7 +53,7 @@ const StatMetricCard: React.FC<StatMetricCardProps> = ({
               color: iconColor || 'var(--color-primary-700)'
             }}
           >
-            <Icon name={icon} size="lg" />
+            <Icon name={icon as any} size="lg" />
           </div>
         )}
       </div>

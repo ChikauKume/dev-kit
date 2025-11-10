@@ -98,7 +98,7 @@ export default function PaginationPanel({
 
     return (
         <>
-            <style jsx>{`
+            <style>{`
                 .pagination-panel {
                     display: flex;
                     flex-direction: column;

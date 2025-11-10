@@ -488,7 +488,10 @@ function validatePages(string $specName, array $pages): int
     echo "Checking " . count($pages) . " page component(s)...\n";
 
     foreach ($pages as $page) {
-        $pagePath = "$projectRoot/resources/js/Pages/Auth/$page";
+        // 動的にファイルを検索（複数のディレクトリパターンに対応）
+        $found = glob("$projectRoot/resources/js/Pages/*/$page") ?: glob("$projectRoot/resources/js/Pages/$page");
+        $pagePath = !empty($found) ? $found[0] : "$projectRoot/resources/js/Pages/Auth/$page";
+
         if (!file_exists($pagePath)) {
             echo RED . "❌ Page component NOT FOUND: $page" . NC . "\n";
             echo RED . "   Expected at: $pagePath" . NC . "\n";

@@ -22,7 +22,7 @@ export default function BreadcrumbNav({
     className = '',
     showHome = true,
     separator = '>'
-}: BreadcrumbNavProps): JSX.Element | null {
+}: BreadcrumbNavProps): React.ReactElement | null {
     // パンくずデータの検証
     if (!breadcrumbs || !breadcrumbs.items || breadcrumbs.items.length === 0) {
         return null;

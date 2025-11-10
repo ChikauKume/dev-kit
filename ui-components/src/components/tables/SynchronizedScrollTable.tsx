@@ -49,10 +49,10 @@ export default function SynchronizedScrollTable<T = any>({
         isScrollbarDetectionComplete,
         handleHeaderScroll,
         handleBodyScroll
-    } = useSynchronizedScroll(data, needsScroll);
+    } = useSynchronizedScroll(Array.isArray(data) ? data : [], needsScroll);
 
     // プリセットとカスタム設定を統合（動的高さとスクロール必要性を追加）
-    const tableConfig: TablePresetConfig = getTableConfig(preset, {
+    const tableConfig: any = getTableConfig(preset, {
         ...config,
         dynamicHeight,
         needsScroll

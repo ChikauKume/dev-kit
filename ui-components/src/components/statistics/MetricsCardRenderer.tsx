@@ -58,7 +58,7 @@ const MetricsCardRenderer: React.FC<MetricsCardRendererProps> = ({
         <div className="metrics-card__content">
           {metric.icon && (
             <div className="metrics-card__icon">
-              <Icon name={metric.icon} size="lg" />
+              <Icon name={metric.icon as any} size="lg" />
             </div>
           )}
 

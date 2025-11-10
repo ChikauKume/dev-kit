@@ -62,9 +62,9 @@ PHP_ERRORS=0
 
 # app/Modules配下の全PHPファイルをチェック
 while IFS= read -r -d '' file; do
-    if ! php -l "$file" > /dev/null 2>&1; then
+    if ! ./vendor/bin/sail php -l "$file" > /dev/null 2>&1; then
         echo "❌ Syntax error in: $file"
-        php -l "$file"
+        ./vendor/bin/sail php -l "$file"
         PHP_ERRORS=$((PHP_ERRORS + 1))
         EXIT_CODE=1
     fi

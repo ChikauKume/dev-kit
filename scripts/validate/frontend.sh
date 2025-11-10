@@ -72,8 +72,9 @@ if [ -n "$SPEC_NAME" ]; then
             for page in $PAGES; do
                 echo "  - $page"
 
-                PAGE_PATH="$PROJECT_ROOT/resources/js/Pages/Auth/$page"
-                if [ -f "$PAGE_PATH" ]; then
+                # 動的にファイルを検索（複数のディレクトリパターンに対応）
+                PAGE_PATH=$(find "$PROJECT_ROOT/resources/js/Pages" -name "$page" 2>/dev/null | head -1)
+                if [ -n "$PAGE_PATH" ] && [ -f "$PAGE_PATH" ]; then
                     echo -e "    ${GREEN}✅ EXISTS${NC}"
 
                     # useDynamicForm使用確認
@@ -138,14 +139,31 @@ echo "------------------------------------------------------------------------"
 if [ -d "$PROJECT_ROOT/resources/js/Pages" ]; then
     echo "Checking ui-components template usage..."
 
-    # ui-componentsからのインポート確認
-    PAGES_WITH_UI_COMPONENTS=$(grep -r "from.*ui-components" "$PROJECT_ROOT/resources/js/Pages" --include="*.tsx" 2>/dev/null | wc -l | tr -d ' ')
+    # ui-componentsテンプレート使用確認（厳密チェック）
+    echo "Checking ui-components template usage (FormPage, ListPage, DetailPage, etc.)..."
 
-    if [ "$PAGES_WITH_UI_COMPONENTS" -gt 0 ]; then
-        echo -e "${GREEN}✅ Found $PAGES_WITH_UI_COMPONENTS page(s) using ui-components${NC}"
+    PAGES=$(find "$PROJECT_ROOT/resources/js/Pages" -name "*.tsx" 2>/dev/null)
+    TEMPLATE_VIOLATION=0
+
+    for page in $PAGES; do
+        # ui-componentsテンプレートのいずれかを使用しているか
+        if grep -qE "(FormPage|ListPage|DetailPage|LoginPage|SignupPage)" "$page"; then
+            echo -e "  ${GREEN}✅ $(basename $page) uses ui-components template${NC}"
+        else
+            # テンプレート未使用だがReactコンポーネントとして実装されている場合
+            if grep -q "export default" "$page"; then
+                echo -e "  ${RED}❌ $(basename $page) does NOT use ui-components template${NC}"
+                echo "     REQUIRED: Use FormPage, ListPage, or DetailPage"
+                TEMPLATE_VIOLATION=$((TEMPLATE_VIOLATION + 1))
+            fi
+        fi
+    done
+
+    if [ $TEMPLATE_VIOLATION -gt 0 ]; then
+        echo -e "${RED}❌ $TEMPLATE_VIOLATION page(s) not using ui-components templates${NC}"
+        EXIT_CODE=1
     else
-        echo -e "${YELLOW}⚠️  No pages found using ui-components templates${NC}"
-        echo "   Expected imports: LoginPage, SignupPage, FormPage, ListPage, DetailPage"
+        echo -e "${GREEN}✅ All pages use ui-components templates${NC}"
     fi
 
     # 禁止パターン検出
@@ -246,20 +264,8 @@ echo ""
 # ========================================================================
 # Part 6: 既存のfrontend.sh実行（包括チェック）
 # ========================================================================
-echo -e "${BLUE}📝 Part 6: Comprehensive Frontend Check (legacy frontend.sh)${NC}"
-echo "------------------------------------------------------------------------"
-
-if [ -x "$SCRIPT_DIR/frontend.sh" ]; then
-    echo "Running existing frontend.sh for comprehensive checks..."
-    if "$SCRIPT_DIR/frontend.sh"; then
-        echo -e "${GREEN}✅ Comprehensive frontend check PASSED${NC}"
-    else
-        echo -e "${RED}❌ Comprehensive frontend check FAILED${NC}"
-        EXIT_CODE=1
-    fi
-else
-    echo -e "${YELLOW}⚠️  frontend.sh not found or not executable${NC}"
-fi
+# REMOVED: Infinite loop - frontend.sh was calling itself recursively
+# This section has been disabled to prevent infinite loops
 
 echo ""
 

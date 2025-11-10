@@ -10,6 +10,25 @@
 #   - 1つのテストケース = 1つの完全なユーザーストーリー
 #   - 複数ページにまたがる操作を含める
 #   - テスト比率: 正常系 30-40%, 異常系・エラーハンドリング 60-70%
+#
+# ⚠️ YAML記述上の重要な注意事項:
+#   1. 長い文字列の記述:
+#      ❌ 誤り: value: "あ" * 255  # PHP構文であり、YAMLでは文字列として扱われる
+#      ✅ 正しい: value: "ああああ..." # 実際に255文字分記述する
+#
+#   2. セレクタの記述:
+#      ✅ 推奨: selector: 'button[type="submit"]'  # 属性セレクタ
+#      ✅ 推奨: selector: 'input[name="email"]'    # name属性セレクタ
+#      ⚠️ 注意: selector: 'button:has-text("登録")' # :has-text()は自動でgetByRole()に変換される
+#      ⚠️ 注意: selector: 'text="エラー"'          # text=は自動でgetByText()に変換される
+#
+#   3. ハッシュ化パスワード（setup等で使用する場合）:
+#      ❌ 誤り: password: "$2y$10$HashedExample"  # $記号がYAML変数展開される可能性
+#      ✅ 正しい: password: '$2y$10$HashedExample'  # シングルクォートで囲む
+#
+#   4. URL指定:
+#      ✅ 正しい: url: /signup         # 相対パス
+#      ✅ 正しい: url: /signup/confirm # スラッシュから始める
 
 # E2Eテストケース定義
 e2e_tests:

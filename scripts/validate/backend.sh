@@ -29,6 +29,12 @@ echo ""
 EXIT_CODE=0
 SPEC_NAME="${1:-}"
 
+# パストラバーサル対策（SPEC_NAMEが指定されている場合のみ）
+if [ -n "$SPEC_NAME" ] && [[ "$SPEC_NAME" =~ \.\./|^/ ]]; then
+    echo -e "${RED}❌ エラー: 不正な仕様名が指定されています${NC}"
+    exit 1
+fi
+
 # ========================================================================
 # Part 1: design.md整合性チェック（最優先）
 # ========================================================================
@@ -168,9 +174,9 @@ if [ -n "$SPEC_NAME" ] && [ -n "$MODULE_NAME" ]; then
         echo "Checking PHP syntax in app/Modules/$MODULE_NAME..."
 
         while IFS= read -r -d '' file; do
-            if ! php -l "$file" > /dev/null 2>&1; then
+            if ! ./vendor/bin/sail php -l "$file" > /dev/null 2>&1; then
                 echo -e "${RED}❌ Syntax error in: $file${NC}"
-                php -l "$file"
+                ./vendor/bin/sail php -l "$file"
                 PHP_ERRORS=$((PHP_ERRORS + 1))
                 EXIT_CODE=1
             fi
@@ -218,12 +224,12 @@ if [ -n "$SPEC_NAME" ] && [ -n "$MODULE_NAME" ]; then
 
                 # YAMLから期待値を取得
                 if command -v php >/dev/null 2>&1 && [ -f "$SCRIPT_DIR/parse-validation.php" ]; then
-                    EXPECTED_JSON=$(php "$SCRIPT_DIR/parse-validation.php" "$MODULE_NAME" "$REQUEST_CLASSNAME" 2>/dev/null)
+                    EXPECTED_JSON=$(./vendor/bin/sail php "$SCRIPT_DIR/parse-validation.php" "$MODULE_NAME" "$REQUEST_CLASSNAME" 2>/dev/null)
 
                     if grep -q '"found".*true' <<< "$EXPECTED_JSON"; then
                         # YAML設定が見つかった場合
-                        CONTEXT=$(echo "$EXPECTED_JSON" | php -r 'echo json_decode(file_get_contents("php://stdin"))->context ?? "unknown";')
-                        DESCRIPTION=$(echo "$EXPECTED_JSON" | php -r 'echo json_decode(file_get_contents("php://stdin"))->description ?? "";')
+                        CONTEXT=$(echo "$EXPECTED_JSON" | ./vendor/bin/sail php -r 'echo json_decode(file_get_contents("php://stdin"))->context ?? "unknown";')
+                        DESCRIPTION=$(echo "$EXPECTED_JSON" | ./vendor/bin/sail php -r 'echo json_decode(file_get_contents("php://stdin"))->description ?? "";')
 
                         echo -e "${BLUE}ℹ️  Context: $CONTEXT${NC}"
                         if [ -n "$DESCRIPTION" ]; then
@@ -231,7 +237,7 @@ if [ -n "$SPEC_NAME" ] && [ -n "$MODULE_NAME" ]; then
                         fi
 
                         # YAML定義からフィールドリストを取得
-                        FIELD_NAMES=$(echo "$EXPECTED_JSON" | php -r '
+                        FIELD_NAMES=$(echo "$EXPECTED_JSON" | ./vendor/bin/sail php -r '
                             $data = json_decode(file_get_contents("php://stdin"), true);
                             if (isset($data["fields"]) && !empty($data["fields"])) {
                                 echo implode("\n", array_keys($data["fields"]));
@@ -244,7 +250,7 @@ if [ -n "$SPEC_NAME" ] && [ -n "$MODULE_NAME" ]; then
                             # 各フィールドのバリデーションルールをチェック
                             echo "$FIELD_NAMES" | while IFS= read -r field_name; do
                                 # YAML定義から期待されるルールを取得
-                                EXPECTED_RULES=$(echo "$EXPECTED_JSON" | php -r "
+                                EXPECTED_RULES=$(echo "$EXPECTED_JSON" | ./vendor/bin/sail php -r "
                                     \$data = json_decode(file_get_contents('php://stdin'), true);
                                     if (isset(\$data['fields']['$field_name']['rules'])) {
                                         echo implode(',', \$data['fields']['$field_name']['rules']);

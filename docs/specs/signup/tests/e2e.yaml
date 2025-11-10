@@ -1,0 +1,589 @@
+# ===================================================================
+# E2E テストケース定義(Playwright) - 新規登録機能
+# ===================================================================
+# ⚠️ YAML記述上の重要な注意事項:
+#   1. 長い文字列: "あ" * 255 ではなく実際に255文字分記述する
+#   2. セレクタ: 'button:has-text("登録")' は自動でgetByRole()に変換される
+#   3. text=セレクタ: 'text="エラー"' は自動でgetByText()に変換される
+#   4. ハッシュ値: $ を含む値はシングルクォートで囲む(例: '$2y$10$...')
+# ===================================================================
+
+spec_name: signup
+test_type: e2e
+framework: playwright
+
+config:
+  video: on
+  slow_mo: 750
+  base_url: http://127.0.0.1
+  timeout: 30000
+
+scenarios:
+  - id: E2E-001
+    name: ユーザー登録フロー(正常系)
+    page_name: Signup
+    category: normal
+    description: |
+      新規ユーザーが3ステップで正常に登録できることを確認。
+      入力画面 → 確認画面 → 完了画面 → ログイン画面の流れをテスト。
+    prerequisites:
+      - データベースがクリーンな状態であること
+      - test@example.com が未登録であること
+    steps:
+      - action: navigate
+        url: /signup
+        description: 新規登録画面にアクセス
+      - action: assert
+        selector: h1
+        expected: "新規登録"
+        description: 新規登録画面が表示されることを確認
+      - action: type
+        selector: input[name="name"]
+        value: "山田 太郎"
+        description: 名前を入力
+      - action: type
+        selector: input[name="email"]
+        value: "test@example.com"
+        description: メールアドレスを入力
+      - action: type
+        selector: input[name="phone"]
+        value: "08012345678"
+        description: 電話番号を入力
+      - action: type
+        selector: input[name="password"]
+        value: "Password123!"
+        description: パスワードを入力
+      - action: type
+        selector: input[name="password_confirmation"]
+        value: "Password123!"
+        description: パスワード(確認)を入力
+      - action: check
+        selector: input[name="agreeToTerms"]
+        description: 利用規約に同意するチェックボックスをチェック
+      - action: click
+        selector: button[type="submit"]
+        description: 登録内容を確認ボタンをクリック
+      - action: wait_for_navigation
+        url: /signup/confirm
+        description: 登録内容確認画面に遷移することを確認
+      - action: assert
+        selector: h1
+        expected: "登録内容確認"
+        description: 登録内容確認画面が表示されることを確認
+      - action: assert_text_contains
+        selector: body
+        expected: "山田 太郎"
+        description: 入力した名前が表示されることを確認
+      - action: assert_text_contains
+        selector: body
+        expected: "test@example.com"
+        description: 入力したメールアドレスが表示されることを確認
+      - action: assert_text_contains
+        selector: body
+        expected: "08012345678"
+        description: 入力した電話番号が表示されることを確認
+      - action: click
+        selector: button:has-text("登録")
+        description: 登録ボタンをクリック
+      - action: wait_for_navigation
+        url: /signup/complete
+        description: 登録完了画面に遷移することを確認
+      - action: assert
+        selector: h1
+        expected: "登録完了"
+        description: 登録完了画面が表示されることを確認
+      - action: assert_text_contains
+        selector: body
+        expected: "ユーザー登録が完了しました"
+        description: 完了メッセージが表示されることを確認
+      - action: click
+        selector: a:has-text("ログイン画面へ")
+        description: ログイン画面へのリンクをクリック
+      - action: wait_for_navigation
+        url: /login
+        description: ログイン画面に遷移することを確認
+    expected_results:
+      - ユーザー登録が正常に完了すること
+      - データベースにユーザーが作成されること
+      - 登録完了画面にメッセージが表示されること
+      - ログイン画面に遷移できること
+    validations:
+      - database:
+          table: users
+          conditions:
+            email: "test@example.com"
+            name: "山田 太郎"
+            phone: "08012345678"
+
+  - id: E2E-002
+    name: 確認画面から登録画面に戻る(正常系)
+    page_name: SignupConfirm
+    category: normal
+    description: |
+      確認画面から「戻る」ボタンで登録画面に戻った際、
+      入力データが保持されていることを確認(パスワードを除く)。
+    prerequisites:
+      - 新規登録画面にアクセスできること
+    steps:
+      - action: navigate
+        url: /signup
+        description: 新規登録画面にアクセス
+      - action: assert
+        selector: h1
+        expected: "新規登録"
+        description: 新規登録画面が表示されることを確認
+      - action: type
+        selector: input[name="name"]
+        value: "佐藤 花子"
+        description: 名前を入力
+      - action: type
+        selector: input[name="email"]
+        value: "hanako@example.com"
+        description: メールアドレスを入力
+      - action: type
+        selector: input[name="phone"]
+        value: "09087654321"
+        description: 電話番号を入力
+      - action: type
+        selector: input[name="password"]
+        value: "SecurePass456!"
+        description: パスワードを入力
+      - action: type
+        selector: input[name="password_confirmation"]
+        value: "SecurePass456!"
+        description: パスワード(確認)を入力
+      - action: check
+        selector: input[name="agreeToTerms"]
+        description: 利用規約に同意するチェックボックスをチェック
+      - action: click
+        selector: button[type="submit"]
+        description: 登録内容を確認ボタンをクリック
+      - action: wait_for_navigation
+        url: /signup/confirm
+        description: 登録内容確認画面に遷移することを確認
+      - action: assert
+        selector: h1
+        expected: "登録内容確認"
+        description: 登録内容確認画面が表示されることを確認
+      - action: click
+        selector: button:has-text("戻る")
+        description: 戻るボタンをクリック
+      - action: wait_for_navigation
+        url: /signup
+        description: 新規登録画面に戻ることを確認
+      - action: assert
+        selector: h1
+        expected: "新規登録"
+        description: 新規登録画面が表示されることを確認
+      - action: assert_value
+        selector: input[name="name"]
+        expected: "佐藤 花子"
+        description: 名前が保持されていることを確認
+      - action: assert_value
+        selector: input[name="email"]
+        expected: "hanako@example.com"
+        description: メールアドレスが保持されていることを確認
+      - action: assert_value
+        selector: input[name="phone"]
+        expected: "09087654321"
+        description: 電話番号が保持されていることを確認
+      - action: assert_value
+        selector: input[name="password"]
+        expected: ""
+        description: パスワードが空であることを確認(セキュリティ上保持しない)
+      - action: assert_value
+        selector: input[name="password_confirmation"]
+        expected: ""
+        description: パスワード確認が空であることを確認(セキュリティ上保持しない)
+      - action: assert_checked
+        selector: input[name="agreeToTerms"]
+        expected: false
+        description: 利用規約チェックボックスがオフであることを確認
+    expected_results:
+      - 確認画面から登録画面に戻れること
+      - 名前、メール、電話番号が保持されていること
+      - パスワードは保持されないこと(セキュリティ)
+      - 利用規約チェックはリセットされること
+    validations:
+      - no_database_changes: true
+      - session:
+          has_old_input: true
+          old_fields:
+            - name
+            - email
+            - phone
+
+  - id: E2E-003
+    name: 電話番号なしでの登録(正常系)
+    page_name: Signup
+    category: normal
+    description: |
+      電話番号(任意項目)を入力せずに登録完了できることを確認。
+    prerequisites:
+      - 新規登録画面にアクセスできること
+    steps:
+      - action: navigate
+        url: /signup
+        description: 新規登録画面にアクセス
+      - action: assert
+        selector: h1
+        expected: "新規登録"
+        description: 新規登録画面が表示されることを確認
+      - action: type
+        selector: input[name="name"]
+        value: "電話なし 太郎"
+        description: 名前を入力
+      - action: type
+        selector: input[name="email"]
+        value: "no-phone@example.com"
+        description: メールアドレスを入力
+      - action: type
+        selector: input[name="password"]
+        value: "Password123!"
+        description: パスワードを入力
+      - action: type
+        selector: input[name="password_confirmation"]
+        value: "Password123!"
+        description: パスワード(確認)を入力
+      - action: check
+        selector: input[name="agreeToTerms"]
+        description: 利用規約に同意するチェックボックスをチェック
+      - action: click
+        selector: button[type="submit"]
+        description: 登録内容を確認ボタンをクリック
+      - action: wait_for_navigation
+        url: /signup/confirm
+        description: 登録内容確認画面に遷移することを確認
+      - action: assert
+        selector: h1
+        expected: "登録内容確認"
+        description: 登録内容確認画面が表示されることを確認
+      - action: assert_text_contains
+        selector: body
+        expected: "電話なし 太郎"
+        description: 入力した名前が表示されることを確認
+      - action: click
+        selector: button:has-text("登録")
+        description: 登録ボタンをクリック
+      - action: wait_for_navigation
+        url: /signup/complete
+        description: 登録完了画面に遷移することを確認
+      - action: assert
+        selector: h1
+        expected: "登録完了"
+        description: 登録完了画面が表示されることを確認
+    expected_results:
+      - 電話番号なしで登録が完了すること
+      - データベースにユーザーが作成されること(phone=null)
+    validations:
+      - database:
+          table: users
+          conditions:
+            email: "no-phone@example.com"
+            name: "電話なし 太郎"
+            phone: null
+
+  - id: E2E-004
+    name: 全角数字→半角数字自動変換(正常系)
+    page_name: Signup
+    category: normal
+    description: |
+      電話番号入力時、全角数字が自動的に半角数字に変換されることを確認。
+      フロントエンドの自動変換機能のテスト。
+    prerequisites:
+      - 新規登録画面にアクセスできること
+    steps:
+      - action: navigate
+        url: /signup
+        description: 新規登録画面にアクセス
+      - action: assert
+        selector: h1
+        expected: "新規登録"
+        description: 新規登録画面が表示されることを確認
+      - action: type
+        selector: input[name="name"]
+        value: "全角 太郎"
+        description: 名前を入力
+      - action: type
+        selector: input[name="email"]
+        value: "zenkaku@example.com"
+        description: メールアドレスを入力
+      - action: type
+        selector: input[name="phone"]
+        value: "０９０１２３４５６７８"
+        description: 電話番号を全角数字で入力
+      - action: blur
+        selector: input[name="phone"]
+        description: 電話番号フィールドからフォーカスを外す(変換トリガー)
+      - action: assert_value
+        selector: input[name="phone"]
+        expected: "09012345678"
+        description: 半角数字に自動変換されていることを確認
+      - action: type
+        selector: input[name="password"]
+        value: "Password123!"
+        description: パスワードを入力
+      - action: type
+        selector: input[name="password_confirmation"]
+        value: "Password123!"
+        description: パスワード(確認)を入力
+      - action: check
+        selector: input[name="agreeToTerms"]
+        description: 利用規約に同意するチェックボックスをチェック
+      - action: click
+        selector: button[type="submit"]
+        description: 登録内容を確認ボタンをクリック
+      - action: wait_for_navigation
+        url: /signup/confirm
+        description: 登録内容確認画面に遷移することを確認
+      - action: assert
+        selector: h1
+        expected: "登録内容確認"
+        description: 登録内容確認画面が表示されることを確認
+      - action: assert_text_contains
+        selector: body
+        expected: "09012345678"
+        description: 半角数字で表示されていることを確認
+    expected_results:
+      - 全角数字が半角数字に自動変換されること
+      - 変換後の値で登録確認画面に進めること
+    validations:
+      - frontend:
+          field: phone
+          conversion: zenkaku_to_hankaku
+
+  - id: E2E-005
+    name: バリデーションエラー表示(異常系)
+    page_name: Signup
+    category: error
+    description: |
+      不正なデータを入力した場合、バリデーションエラーが正しく表示されることを確認。
+      フロントエンドバリデーションの動作をテスト。
+    prerequisites:
+      - 新規登録画面にアクセスできること
+    steps:
+      - action: navigate
+        url: /signup
+        description: 新規登録画面にアクセス
+      - action: assert
+        selector: h1
+        expected: "新規登録"
+        description: 新規登録画面が表示されることを確認
+      - action: type
+        selector: input[name="name"]
+        value: "A"
+        description: 名前を1文字で入力(最小値2文字未満)
+      - action: type
+        selector: input[name="email"]
+        value: "invalid-email"
+        description: 不正なメールアドレスを入力(@なし)
+      - action: type
+        selector: input[name="password"]
+        value: "123"
+        description: 短いパスワードを入力(最小値8文字未満)
+      - action: type
+        selector: input[name="password_confirmation"]
+        value: "456"
+        description: パスワード確認に不一致の値を入力
+      - action: click
+        selector: button[type="submit"]
+        description: 登録内容を確認ボタンをクリック
+      - action: wait
+        duration: 1000
+        description: バリデーションエラーの表示を待つ
+      - action: assert_url
+        expected: /signup
+        description: 新規登録画面から遷移しないことを確認
+      - action: assert_visible
+        selector: text="名前は2文字以上で入力してください"
+        description: 名前のバリデーションエラーが表示されることを確認
+      - action: assert_visible
+        selector: text="有効なメールアドレスを入力してください"
+        description: メールアドレスのバリデーションエラーが表示されることを確認
+      - action: assert_visible
+        selector: text="パスワードは8文字以上で入力してください"
+        description: パスワードのバリデーションエラーが表示されることを確認
+      - action: assert_visible
+        selector: text="パスワードが一致しません"
+        description: パスワード確認のバリデーションエラーが表示されることを確認
+      - action: assert_visible
+        selector: text="利用規約に同意してください"
+        description: 利用規約同意のバリデーションエラーが表示されることを確認
+    expected_results:
+      - バリデーションエラーが表示されること
+      - 新規登録画面から遷移しないこと
+      - 各フィールドのエラーメッセージが正しく表示されること
+    validations:
+      - no_database_changes: true
+      - session:
+          has_errors: true
+
+  - id: E2E-006
+    name: メールアドレス重複チェック(異常系→正常系)
+    page_name: Signup
+    category: error
+    description: |
+      既存ユーザーと同じメールアドレスで登録試行 → エラー表示。
+      別のメールアドレスに変更 → 登録成功。
+      uniqueバリデーションの動作確認。
+    prerequisites:
+      - テストユーザーが登録されていること(email: test@example.com)
+    steps:
+      - action: navigate
+        url: /signup
+        description: 新規登録画面にアクセス
+      - action: assert
+        selector: h1
+        expected: "新規登録"
+        description: 新規登録画面が表示されることを確認
+      - action: type
+        selector: input[name="name"]
+        value: "重複 太郎"
+        description: 名前を入力
+      - action: type
+        selector: input[name="email"]
+        value: "test@example.com"
+        description: 既存ユーザーと同じメールアドレスを入力
+      - action: type
+        selector: input[name="password"]
+        value: "Password123!"
+        description: パスワードを入力
+      - action: type
+        selector: input[name="password_confirmation"]
+        value: "Password123!"
+        description: パスワード(確認)を入力
+      - action: check
+        selector: input[name="agreeToTerms"]
+        description: 利用規約に同意するチェックボックスをチェック
+      - action: click
+        selector: button[type="submit"]
+        description: 登録内容を確認ボタンをクリック
+      - action: wait
+        duration: 1000
+        description: バリデーションエラーの表示を待つ
+      - action: assert_url
+        expected: /signup
+        description: 新規登録画面から遷移しないことを確認
+      - action: assert_visible
+        selector: text="このメールアドレスは既に登録されています"
+        description: メールアドレス重複エラーが表示されることを確認
+      - action: clear
+        selector: input[name="email"]
+        description: メールアドレスをクリア
+      - action: type
+        selector: input[name="email"]
+        value: "duplicate-fixed@example.com"
+        description: 別のメールアドレスを入力
+      - action: click
+        selector: button[type="submit"]
+        description: 登録内容を確認ボタンを再度クリック
+      - action: wait_for_navigation
+        url: /signup/confirm
+        description: 登録内容確認画面に遷移することを確認
+      - action: assert
+        selector: h1
+        expected: "登録内容確認"
+        description: 登録内容確認画面が表示されることを確認
+    expected_results:
+      - 重複メールアドレスでエラーが表示されること
+      - 別のメールアドレスに変更後、確認画面に遷移できること
+    validations:
+      - database:
+          table: users
+          conditions:
+            email: "test@example.com"
+          assertion: exists_only_once
+
+  - id: E2E-007
+    name: 確認画面への直接アクセス拒否(異常系)
+    page_name: SignupConfirm
+    category: error
+    description: |
+      セッションデータなしで /signup/confirm に直接アクセスした場合、
+      /signup にリダイレクトされることを確認。
+      セッションガードの動作テスト。
+    prerequisites:
+      - セッションがクリアされていること
+    steps:
+      - action: navigate
+        url: /signup/confirm
+        description: 確認画面に直接アクセスを試行
+      - action: wait_for_navigation
+        url: /signup
+        description: 新規登録画面にリダイレクトされることを確認
+      - action: assert
+        selector: h1
+        expected: "新規登録"
+        description: 新規登録画面が表示されることを確認
+      - action: assert_visible
+        selector: text="入力内容を確認してください"
+        description: エラーメッセージまたは案内が表示されることを確認
+    expected_results:
+      - 確認画面への直接アクセスがブロックされること
+      - 新規登録画面にリダイレクトされること
+    validations:
+      - session:
+          has_signup_data: false
+
+  - id: E2E-008
+    name: 完了画面への直接アクセス拒否(異常系)
+    page_name: SignupComplete
+    category: error
+    description: |
+      セッションデータなしで /signup/complete に直接アクセスした場合、
+      /signup にリダイレクトされることを確認。
+      セッションガードの動作テスト。
+    prerequisites:
+      - セッションがクリアされていること
+    steps:
+      - action: navigate
+        url: /signup/complete
+        description: 完了画面に直接アクセスを試行
+      - action: wait_for_navigation
+        url: /signup
+        description: 新規登録画面にリダイレクトされることを確認
+      - action: assert
+        selector: h1
+        expected: "新規登録"
+        description: 新規登録画面が表示されることを確認
+    expected_results:
+      - 完了画面への直接アクセスがブロックされること
+      - 新規登録画面にリダイレクトされること
+    validations:
+      - session:
+          has_signup_complete_flag: false
+
+  - id: E2E-009
+    name: 認証済みユーザーの登録画面アクセス(異常系)
+    page_name: Signup
+    category: error
+    description: |
+      ログイン済みユーザーが /signup にアクセスした場合、
+      /dashboard にリダイレクトされることを確認。
+      guest ミドルウェアの動作テスト。
+    prerequisites:
+      - テストユーザーでログイン済みであること
+    steps:
+      - action: navigate
+        url: /dashboard
+        description: ダッシュボードにアクセス(ログイン確認)
+      - action: assert
+        selector: h1
+        expected: "ダッシュボード"
+        description: ダッシュボードが表示されることを確認(ログイン済み)
+      - action: navigate
+        url: /signup
+        description: 新規登録画面にアクセスを試行
+      - action: wait_for_navigation
+        url: /dashboard
+        description: ダッシュボードにリダイレクトされることを確認
+      - action: assert
+        selector: h1
+        expected: "ダッシュボード"
+        description: ダッシュボードが表示されることを確認
+    expected_results:
+      - ログイン済みユーザーは新規登録画面にアクセスできないこと
+      - ダッシュボードにリダイレクトされること
+    validations:
+      - session:
+          authenticated: true

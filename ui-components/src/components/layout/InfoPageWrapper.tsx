@@ -136,7 +136,7 @@ const InfoPageWrapper: React.FC<InfoPageWrapperProps> = ({
   const allSidebarMenuItems = sidebarMenuItems !== undefined ? sidebarMenuItems : defaultSidebarMenuItems;
 
   // Get icon name based on notification type
-  const getNotificationIcon = (type?: 'info' | 'warning' | 'success' | 'danger'): string => {
+  const getNotificationIcon = (type?: 'info' | 'warning' | 'success' | 'danger'): IconName => {
     switch (type) {
       case 'warning':
         return 'warning';

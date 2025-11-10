@@ -160,6 +160,30 @@ if command -v jq &> /dev/null; then
     mv "$TEMP_FILE" "$PROJECT_ROOT/package.json"
     echo -e "${GREEN}✅ npm scripts added to package.json${NC}"
 
+    # ワークフローコマンドが正しく追加されたか確認
+    if grep -q '"workflow:prepare"' "$PROJECT_ROOT/package.json" && \
+       grep -q '"tdd:red"' "$PROJECT_ROOT/package.json" && \
+       grep -q '"tdd:green"' "$PROJECT_ROOT/package.json" && \
+       grep -q '"generate:phpunit"' "$PROJECT_ROOT/package.json" && \
+       grep -q '"generate:e2e"' "$PROJECT_ROOT/package.json"; then
+        echo -e "${GREEN}   ✅ All workflow commands successfully added:${NC}"
+        echo -e "${GREEN}      - workflow:prepare, workflow:step1-5${NC}"
+        echo -e "${GREEN}      - tdd:status, tdd:red, tdd:green${NC}"
+        echo -e "${GREEN}      - generate:phpunit, generate:e2e${NC}"
+        echo -e "${GREEN}      - bg:list, bg:clean${NC}"
+    else
+        echo -e "${YELLOW}   ⚠️  Some workflow commands may be missing${NC}"
+        echo -e "${YELLOW}      Please check package.json manually${NC}"
+
+        # 具体的に何が欠けているか表示
+        if ! grep -q '"generate:phpunit"' "$PROJECT_ROOT/package.json"; then
+            echo -e "${RED}      ❌ Missing: generate:phpunit${NC}"
+        fi
+        if ! grep -q '"generate:e2e"' "$PROJECT_ROOT/package.json"; then
+            echo -e "${RED}      ❌ Missing: generate:e2e${NC}"
+        fi
+    fi
+
     # @chikau/ui-components 依存関係を追加
     if ! grep -q "@chikau/ui-components" "$PROJECT_ROOT/package.json"; then
         echo -e "${YELLOW}   🔧 Adding @chikau/ui-components to dependencies...${NC}"
@@ -506,8 +530,12 @@ chmod +x "$PROJECT_ROOT/dev-kit/scripts/generate"/*.php 2>/dev/null || true
 chmod +x "$PROJECT_ROOT/dev-kit/scripts/generate"/*.cjs 2>/dev/null || true
 chmod +x "$PROJECT_ROOT/dev-kit/scripts/setup"/*.sh 2>/dev/null || true
 chmod +x "$PROJECT_ROOT/dev-kit/scripts/fix"/*.sh 2>/dev/null || true
+chmod +x "$PROJECT_ROOT/dev-kit/scripts/workflow"/*.sh 2>/dev/null || true
+chmod +x "$PROJECT_ROOT/dev-kit/scripts/preparation"/*.sh 2>/dev/null || true
+chmod +x "$PROJECT_ROOT/dev-kit/scripts/diagnose"/*.sh 2>/dev/null || true
+chmod +x "$PROJECT_ROOT/dev-kit/scripts/bg"/*.sh 2>/dev/null || true
 
-echo -e "${GREEN}✅ Execute permissions set${NC}"
+echo -e "${GREEN}✅ Execute permissions set for all scripts${NC}"
 
 echo ""
 
@@ -539,6 +567,111 @@ fi
 echo ""
 
 # ========================================================================
+# 12. Laravel TestCase.php 生成
+# ========================================================================
+echo -e "${BLUE}📝 Step 12: Laravel TestCase.php${NC}"
+echo "------------------------------------------------------------------------"
+
+TESTS_DIR="$PROJECT_ROOT/tests"
+mkdir -p "$TESTS_DIR"
+
+if [ ! -f "$TESTS_DIR/TestCase.php" ]; then
+    cat > "$TESTS_DIR/TestCase.php" <<'EOF'
+<?php
+
+namespace Tests;
+
+use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+
+abstract class TestCase extends BaseTestCase
+{
+    //
+}
+EOF
+    echo -e "${GREEN}✅ tests/TestCase.php created${NC}"
+else
+    echo -e "${YELLOW}⚠️  tests/TestCase.php already exists (skipped)${NC}"
+fi
+
+echo ""
+
+# ========================================================================
+# 13. .env DB設定チェック・テンプレート提供
+# ========================================================================
+echo -e "${BLUE}📝 Step 13: Database Configuration Check${NC}"
+echo "------------------------------------------------------------------------"
+
+if [ ! -f "$PROJECT_ROOT/.env" ]; then
+    echo -e "${YELLOW}⚠️  .env file not found${NC}"
+    echo "   Run: cp .env.example .env"
+else
+    # DB設定チェック
+    if ! grep -q "^DB_DATABASE=" "$PROJECT_ROOT/.env" || grep -q "^DB_DATABASE=$" "$PROJECT_ROOT/.env"; then
+        echo -e "${YELLOW}⚠️  DB_DATABASE not configured in .env${NC}"
+        echo ""
+        echo "   Add the following to your .env file:"
+        echo ""
+        echo -e "${BLUE}   DB_CONNECTION=sqlite${NC}"
+        echo -e "${BLUE}   DB_DATABASE=:memory:${NC}"
+        echo ""
+        echo "   Or for MySQL/PostgreSQL:"
+        echo ""
+        echo -e "${BLUE}   DB_CONNECTION=mysql${NC}"
+        echo -e "${BLUE}   DB_HOST=127.0.0.1${NC}"
+        echo -e "${BLUE}   DB_PORT=3306${NC}"
+        echo -e "${BLUE}   DB_DATABASE=your_database_name${NC}"
+        echo -e "${BLUE}   DB_USERNAME=your_username${NC}"
+        echo -e "${BLUE}   DB_PASSWORD=your_password${NC}"
+    else
+        echo -e "${GREEN}✅ Database configuration found in .env${NC}"
+    fi
+fi
+
+echo ""
+
+# ========================================================================
+# 14. ワークフローコマンド動作確認
+# ========================================================================
+echo -e "${BLUE}📝 Step 14: Workflow Commands Verification${NC}"
+echo "------------------------------------------------------------------------"
+
+# package.jsonからworkflow関連コマンドを抽出して確認
+WORKFLOW_COMMANDS=(
+    "workflow:prepare"
+    "workflow:step1"
+    "workflow:step2"
+    "workflow:step3-test"
+    "workflow:step4"
+    "workflow:step5"
+    "generate:phpunit"
+    "generate:e2e"
+    "tdd:status"
+    "tdd:red"
+    "tdd:green"
+)
+
+MISSING_COMMANDS=()
+for cmd in "${WORKFLOW_COMMANDS[@]}"; do
+    if ! grep -q "\"$cmd\"" "$PROJECT_ROOT/package.json" 2>/dev/null; then
+        MISSING_COMMANDS+=("$cmd")
+    fi
+done
+
+if [ ${#MISSING_COMMANDS[@]} -eq 0 ]; then
+    echo -e "${GREEN}✅ All workflow commands verified in package.json${NC}"
+    echo -e "${GREEN}   Claude AI can now use workflow.md commands directly${NC}"
+else
+    echo -e "${RED}❌ Missing workflow commands:${NC}"
+    for cmd in "${MISSING_COMMANDS[@]}"; do
+        echo -e "${RED}   - $cmd${NC}"
+    done
+    echo ""
+    echo -e "${YELLOW}   Please run this setup script again or manually add missing commands${NC}"
+fi
+
+echo ""
+
+# ========================================================================
 # 最終サマリー
 # ========================================================================
 echo "========================================================================"
@@ -547,21 +680,51 @@ echo "========================================================================"
 echo ""
 echo "Next steps:"
 echo ""
-echo "  1. Install Laravel dependencies:"
-echo "     ${BLUE}composer install${NC}"
+echo "  1. Install Laravel dependencies (via Sail):"
+echo "     ${BLUE}./vendor/bin/sail composer install${NC}"
 echo ""
 echo "  2. Setup Laravel environment:"
 echo "     ${BLUE}cp .env.example .env${NC}"
-echo "     ${BLUE}php artisan key:generate${NC}"
+echo "     ${BLUE}./vendor/bin/sail artisan key:generate${NC}"
 echo ""
-echo "  3. Install npm dependencies:"
+echo "  3. Start Laravel Sail (Docker):"
+echo "     ${BLUE}./vendor/bin/sail up -d${NC}"
+echo "     ${BLUE}./vendor/bin/sail ps${NC}  # Verify containers are running"
+echo ""
+echo "  4. Install npm dependencies:"
 echo "     ${BLUE}npm install${NC}"
 echo ""
-echo "  4. Run environment validation:"
+echo "  5. Run environment validation:"
 echo "     ${BLUE}npm run validate:env${NC}"
 echo ""
-echo "  5. Start TDD workflow:"
-echo "     ${BLUE}Open dev-kit/docs/agents/main.md in Claude Code${NC}"
+echo "  6. Start TDD workflow with your spec name (example: 'user-authentication'):"
+echo "     ${BLUE}npm run workflow:prepare {SPEC_NAME}${NC}"
+echo ""
+echo "     Example workflow commands:"
+echo "     ${BLUE}npm run workflow:prepare user-authentication${NC}  # Prepare workflow"
+echo "     ${BLUE}npm run workflow:step1 user-authentication${NC}     # Generate skeletons"
+echo ""
+echo "     Test generation commands:"
+echo "     ${BLUE}npm run generate:phpunit user-authentication${NC}   # Generate PHPUnit tests"
+echo "     ${BLUE}npm run generate:e2e user-authentication${NC}       # Generate E2E tests"
+echo ""
+echo "     TDD cycle commands:"
+echo "     ${BLUE}npm run workflow:step2 user-authentication${NC}     # Start TDD cycle"
+echo "     ${BLUE}npm run tdd:status user-authentication${NC}         # Check progress"
+echo "     ${BLUE}npm run tdd:red user-authentication${NC}            # Run failing tests"
+echo "     ${BLUE}npm run tdd:green user-authentication${NC}          # Verify passing tests"
+echo ""
+echo "     ${YELLOW}For detailed workflow instructions, see:${NC}"
+echo "     ${BLUE}dev-kit/docs/workflow.md${NC}"
+echo ""
+echo "========================================================================"
+echo -e "${GREEN}✅ All workflow commands are now available in package.json${NC}"
+echo "========================================================================"
+echo ""
+echo -e "${YELLOW}⚠️  IMPORTANT:${NC}"
+echo "  - All PHP/Artisan commands must use ${BLUE}./vendor/bin/sail${NC}"
+echo "  - All workflow commands follow the pattern: ${BLUE}npm run workflow:*${NC} or ${BLUE}npm run tdd:*${NC}"
+echo "  - Claude AI will now follow workflow.md instructions correctly"
 echo ""
 echo "========================================================================"
 echo ""

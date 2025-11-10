@@ -44,7 +44,7 @@ export default function SearchFilterPanel({
     onFilterChange = null,
     searchValue = '',
     filterValues = {}
-}: SearchFilterPanelProps): JSX.Element | null {
+}: SearchFilterPanelProps): React.ReactElement | null {
     // 検索機能とフィルター機能のどちらかが無効な場合の制御
     const hasSearch = config?.search?.enabled && onSearchChange;
     const hasFilters = config?.filters?.length > 0 && onFilterChange;

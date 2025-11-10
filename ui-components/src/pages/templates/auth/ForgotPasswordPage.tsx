@@ -152,7 +152,7 @@ const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = (props) => {
       />
       <div className="login-screen">
         <div className="login-card">
-          <h2 className="login-title">パスワード再設定</h2>
+          <h1 className="login-title">パスワード再設定</h1>
         <p className="login-subtitle">メールアドレスに再設定用URLを送信します</p>
 
         <form className="login-form" onSubmit={handleSubmit} noValidate>

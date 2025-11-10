@@ -160,16 +160,24 @@ final class {$useCase}Test extends TestCase
     /**
      * @test
      * TODO: 正常系テストを実装してください
+     *
+     * 参考: dev-kit/docs/specs/{{SPEC_NAME}}/tests/phpunit.yaml
+     * - unit_testsセクションの正常系テストケースを参照
      */
     public function executesSuccessfullyWithValidData(): void
     {
         // TODO: Arrange - テストデータとモックの準備
-        // \$this->repository->shouldReceive('...')->andReturn(...);
+        // 例: phpunit.yamlのinputセクションを参考にテストデータを作成
+        // \$this->repository->shouldReceive('findById')
+        //     ->with(1)
+        //     ->andReturn(new {$module}(...));
 
         // TODO: Act - ユースケース実行
+        // 例: phpunit.yamlのinputを引数として渡す
         // \$result = \$this->useCase->execute(...);
 
         // TODO: Assert - 期待通りの結果を確認
+        // 例: phpunit.yamlのexpectedとassertionを参考に検証
         // \$this->assertInstanceOf(..., \$result);
 
         \$this->markTestIncomplete('TODO: このテストを実装してください');
@@ -633,18 +641,32 @@ final class {$controller}Test extends TestCase
     /**
      * @test
      * TODO: 正常系HTTPリクエストテストを実装してください
+     *
+     * 参考: dev-kit/docs/specs/{{SPEC_NAME}}/tests/phpunit.yaml
+     * - feature_testsセクションの正常系テストケースを参照
      */
     public function returnsSuccessResponseWithValidData(): void
     {
-        // TODO: Arrange - テストデータを準備
-        // \$user = User::factory()->create();
+        // TODO: Setup - phpunit.yamlのsetupセクションを参考にデータを準備
+        // 例: create_user が指定されている場合
+        // \$user = User::factory()->create([
+        //     'email' => 'test@example.com',
+        //     'password' => Hash::make('Password123!'),
+        // ]);
 
-        // TODO: Act - HTTPリクエスト送信
-        // \$response = \$this->actingAs(\$user)->post('/api/endpoint', [...]);
+        // TODO: Act - phpunit.yamlのrequestセクションを参考にHTTPリクエスト送信
+        // 例: requestのmethod, url, dataを使用
+        // \$response = \$this->post('/signup', [
+        //     'name' => '山田 太郎',
+        //     'email' => 'test@example.com',
+        //     ...
+        // ]);
 
-        // TODO: Assert - レスポンス確認
-        // \$response->assertStatus(200);
-        // \$response->assertJson([...]);
+        // TODO: Assert - phpunit.yamlのexpectedセクションを参考にレスポンス確認
+        // 例: expectedのstatus, redirect, sessionを検証
+        // \$response->assertStatus(302);
+        // \$response->assertRedirect('/signup/confirm');
+        // \$this->assertSessionHas('signupName', '山田 太郎');
 
         \$this->markTestIncomplete('TODO: このテストを実装してください');
     }
