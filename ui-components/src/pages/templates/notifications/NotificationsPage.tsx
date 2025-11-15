@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
 import InfoPageWrapper from '../../../components/layout/InfoPageWrapper';
-import TemplateNavigation from '../../../components/navigation/TemplateNavigation';
 import Icon from '../../../components/icons/Icon';
 import { useViewMode } from '../../../hooks/useViewMode';
 
@@ -149,7 +148,7 @@ export interface NotificationsPageProps {
    * Page navigation handler
    * @param page - Page identifier (e.g., 'dashboard', 'settings')
    */
-  onNavigate?: (page: string) => void;
+  onNavigate: (page: string) => void;
 
   /**
    * Callback for logout action
@@ -159,7 +158,7 @@ export interface NotificationsPageProps {
    * onLogout={() => router.post('/logout')}
    * ```
    */
-  onLogout?: () => void;
+  onLogout: () => void;
 
   /**
    * Current active page identifier
@@ -401,10 +400,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({
 
   return (
     <div className={viewMode === 'sp' ? 'force-mobile' : ''}>
-      <TemplateNavigation
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      />
+      
       <InfoPageWrapper
         viewMode={viewMode}
         currentPage={currentPage}

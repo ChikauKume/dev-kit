@@ -195,6 +195,52 @@ fi
 echo ""
 
 # ========================================================================
+# Part 3.5: Password Hashing Configuration Check
+# ========================================================================
+echo -e "${BLUE}📝 Part 3.5: Password Hashing Configuration Check${NC}"
+echo "------------------------------------------------------------------------"
+
+if [ -n "$SPEC_NAME" ] && [ -n "$MODULE_NAME" ]; then
+    # UserModel または UserModel.php を検索
+    USER_MODEL_PATH=$(find "$PROJECT_ROOT/app/Modules/$MODULE_NAME" -name "*UserModel.php" -o -name "*User.php" 2>/dev/null | grep -v "Interface" | head -1)
+
+    if [ -n "$USER_MODEL_PATH" ] && [ -f "$USER_MODEL_PATH" ]; then
+        echo "Checking: $(basename $USER_MODEL_PATH)"
+
+        # 'password' => 'hashed' の存在確認
+        if grep -q "'password'\s*=>\s*'hashed'" "$USER_MODEL_PATH" || grep -q '"password"\s*=>\s*"hashed"' "$USER_MODEL_PATH"; then
+            echo -e "${RED}❌ CRITICAL: UserModel has 'password' => 'hashed' cast${NC}"
+            echo "   This causes DOUBLE HASHING when combined with ValueObject hashing"
+            echo "   File: $USER_MODEL_PATH"
+            echo ""
+            echo "   Fix: Remove 'password' => 'hashed' from casts() method"
+            echo "   Password hashing should only occur in ValueObject layer"
+            echo ""
+            EXIT_CODE=1
+        else
+            echo -e "${GREEN}✅ Password cast not found (correct - hashing in ValueObject)${NC}"
+        fi
+
+        # DatabaseSeederでの正しいハッシュ化確認
+        SEEDER_PATH="$PROJECT_ROOT/database/seeders/DatabaseSeeder.php"
+        if [ -f "$SEEDER_PATH" ]; then
+            if grep -q "Hash::make.*password" "$SEEDER_PATH"; then
+                echo -e "${YELLOW}⚠️  WARNING: DatabaseSeeder uses Hash::make()${NC}"
+                echo "   Consider using password_hash() for consistency with ValueObject"
+            elif grep -q "password_hash.*PASSWORD_BCRYPT" "$SEEDER_PATH"; then
+                echo -e "${GREEN}✅ DatabaseSeeder uses password_hash() (consistent with ValueObject)${NC}"
+            fi
+        fi
+    else
+        echo -e "${YELLOW}⚠️  UserModel not found in $MODULE_NAME module${NC}"
+    fi
+else
+    echo -e "${YELLOW}⚠️  No module specified, skipping password hashing check${NC}"
+fi
+
+echo ""
+
+# ========================================================================
 # Part 4: FormRequest バリデーションルール厳密チェック（YAML-based）
 # ========================================================================
 echo -e "${BLUE}📝 Part 4: FormRequest Validation Rules Check (YAML-based)${NC}"
@@ -359,6 +405,145 @@ else
     echo -e "${YELLOW}⚠️  PHPStan not installed or phpstan.neon not found${NC}"
     echo "Consider installing Larastan for enhanced type checking:"
     echo "  composer require --dev nunomaduro/larastan"
+fi
+
+echo ""
+
+# ========================================================================
+# Part 6: Auth Configuration Class Existence Check
+# ========================================================================
+echo -e "${BLUE}📝 Part 6: Auth Configuration Validation${NC}"
+echo "------------------------------------------------------------------------"
+
+AUTH_CONFIG="$PROJECT_ROOT/config/auth.php"
+if [ -f "$AUTH_CONFIG" ]; then
+    echo "Checking config/auth.php..."
+
+    # authプロバイダのモデルクラスを抽出（BSD grep対応）
+    MODEL_CLASS=$(grep "'model' => " "$AUTH_CONFIG" 2>/dev/null | head -1 | sed "s/.*'model' => //" | sed "s/,$//" | sed "s/'//g" | sed 's/::class//' | xargs)
+
+    if [ -z "$MODEL_CLASS" ]; then
+        # ダブルクォートで試行
+        MODEL_CLASS=$(grep '"model" => ' "$AUTH_CONFIG" 2>/dev/null | head -1 | sed 's/.*"model" => //' | sed 's/,$//' | sed 's/"//g' | sed 's/::class//' | xargs)
+    fi
+
+    if [ -n "$MODEL_CLASS" ]; then
+        echo "Auth model class: $MODEL_CLASS"
+
+        # クラスパスをファイルパスに変換
+        MODEL_FILE=$(echo "$MODEL_CLASS" | sed 's/App\\/app\//' | sed 's/\\/\//g').php
+        FULL_MODEL_PATH="$PROJECT_ROOT/$MODEL_FILE"
+
+        if [ -f "$FULL_MODEL_PATH" ]; then
+            echo -e "${GREEN}✅ Auth model class exists: $MODEL_CLASS${NC}"
+            echo "   File: $MODEL_FILE"
+        else
+            echo -e "${RED}❌ CRITICAL: Auth model class NOT FOUND${NC}"
+            echo "   Expected class: $MODEL_CLASS"
+            echo "   Expected file: $MODEL_FILE"
+            echo "   Actual file: NOT FOUND"
+            echo ""
+            echo "   Common issues:"
+            echo "   - Missing 'Eloquent' subdirectory in namespace"
+            echo "   - Incorrect module path"
+            echo ""
+            echo "   Example fix:"
+            echo "   Wrong: App\Modules\User\Infrastructure\UserModel::class"
+            echo "   Right: App\Modules\User\Infrastructure\Eloquent\UserModel::class"
+            echo ""
+            EXIT_CODE=1
+        fi
+    else
+        echo -e "${YELLOW}⚠️  Could not extract model class from auth.php${NC}"
+        echo "   This may be OK if using default Laravel auth configuration"
+    fi
+else
+    echo -e "${RED}❌ CRITICAL: config/auth.php not found${NC}"
+    EXIT_CODE=1
+fi
+
+echo ""
+
+# ========================================================================
+# Part 7: Laravel 11 Exception Handling Configuration (Inertia)
+# ========================================================================
+echo -e "${BLUE}📝 Part 7: Laravel 11 Exception Handling Configuration${NC}"
+echo "------------------------------------------------------------------------"
+
+BOOTSTRAP_APP="$PROJECT_ROOT/bootstrap/app.php"
+
+if [ ! -f "$BOOTSTRAP_APP" ]; then
+    echo -e "${RED}❌ bootstrap/app.php not found${NC}"
+    EXIT_CODE=1
+else
+    echo "Checking Laravel 11 exception handling configuration..."
+
+    # withExceptions() メソッドの存在確認
+    if grep -q "->withExceptions(" "$BOOTSTRAP_APP"; then
+        echo -e "${GREEN}✅ withExceptions() configuration found${NC}"
+
+        # 404エラーハンドリングの確認
+        if grep -A 20 "withExceptions" "$BOOTSTRAP_APP" | grep -q "NotFoundHttpException"; then
+            echo -e "${GREEN}✅ 404 error handling configured${NC}"
+
+            # Inertia renderの確認
+            if grep -A 30 "NotFoundHttpException" "$BOOTSTRAP_APP" | grep -q "Inertia::render.*Error/404"; then
+                echo -e "${GREEN}✅ 404 renders Inertia Error/404 page${NC}"
+            else
+                echo -e "${RED}❌ 404 does not render Inertia Error/404 page${NC}"
+                echo "   Expected: Inertia::render('Error/404')"
+                echo ""
+                echo "   Fix: In bootstrap/app.php, add:"
+                echo "   ->withExceptions(function (Exceptions \$exceptions): void {"
+                echo "       \$exceptions->render(function (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException \$e) {"
+                echo "           return \Inertia\Inertia::render('Error/404')"
+                echo "               ->toResponse(request())"
+                echo "               ->setStatusCode(404);"
+                echo "       });"
+                echo "   })"
+                echo ""
+                EXIT_CODE=1
+            fi
+        fi
+
+        # 500エラーハンドリングの確認
+        if grep -A 30 "withExceptions" "$BOOTSTRAP_APP" | grep -q "Throwable"; then
+            echo -e "${GREEN}✅ 500 error handling configured${NC}"
+
+            # Inertia renderの確認
+            if grep -A 40 "Throwable" "$BOOTSTRAP_APP" | grep -q "Inertia::render.*Error/500"; then
+                echo -e "${GREEN}✅ 500 renders Inertia Error/500 page${NC}"
+            else
+                echo -e "${YELLOW}⚠️  500 may not render Inertia Error/500 page${NC}"
+                echo "   Recommended: Inertia::render('Error/500')"
+            fi
+        fi
+    else
+        echo -e "${RED}❌ withExceptions() configuration NOT FOUND${NC}"
+        echo ""
+        echo "   CRITICAL: Laravel 11 requires exception handling in bootstrap/app.php"
+        echo "   Old: app/Exceptions/Handler.php (Laravel 10 and earlier)"
+        echo "   New: bootstrap/app.php with ->withExceptions() (Laravel 11+)"
+        echo ""
+        echo "   Fix: Add exception handling in bootstrap/app.php:"
+        echo "   ->withExceptions(function (Exceptions \$exceptions): void {"
+        echo "       \$exceptions->render(function (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException \$e) {"
+        echo "           return \Inertia\Inertia::render('Error/404')"
+        echo "               ->toResponse(request())"
+        echo "               ->setStatusCode(404);"
+        echo "       });"
+        echo "       \$exceptions->render(function (\Throwable \$e) {"
+        echo "           if (! \$e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {"
+        echo "               return \Inertia\Inertia::render('Error/500')"
+        echo "                   ->toResponse(request())"
+        echo "                   ->setStatusCode(500);"
+        echo "           }"
+        echo "           return null;"
+        echo "       });"
+        echo "   })"
+        echo ""
+        EXIT_CODE=1
+    fi
 fi
 
 echo ""

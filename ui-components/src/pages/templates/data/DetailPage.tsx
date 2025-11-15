@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import TemplateNavigation from '../../../components/navigation/TemplateNavigation';
 import InfoPageWrapper from '../../../components/layout/InfoPageWrapper';
 import Icon from '../../../components/icons/Icon';
 import ConfirmModal from '../../../components/messages/ConfirmModal';
@@ -354,10 +353,7 @@ const DetailPage: React.FC<DataDetailPageProps> = ({
   if (loading) {
     return (
       <div className={viewMode === 'sp' ? 'force-mobile' : ''}>
-        <TemplateNavigation
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-        />
+        
         <InfoPageWrapper
           viewMode={viewMode}
           currentPage="data-detail"
@@ -396,10 +392,7 @@ const DetailPage: React.FC<DataDetailPageProps> = ({
   if (error) {
     return (
       <div className={viewMode === 'sp' ? 'force-mobile' : ''}>
-        <TemplateNavigation
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-        />
+        
         <InfoPageWrapper
           viewMode={viewMode}
           currentPage="data-detail"
@@ -447,10 +440,7 @@ const DetailPage: React.FC<DataDetailPageProps> = ({
   if (!data || Object.keys(data).length === 0) {
     return (
       <div className={viewMode === 'sp' ? 'force-mobile' : ''}>
-        <TemplateNavigation
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-        />
+        
         <InfoPageWrapper
           viewMode={viewMode}
           currentPage="data-detail"
@@ -510,10 +500,7 @@ const DetailPage: React.FC<DataDetailPageProps> = ({
 
   return (
     <div className={viewMode === 'sp' ? 'force-mobile' : ''}>
-      <TemplateNavigation
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      />
+      
       <InfoPageWrapper
         viewMode={viewMode}
         currentPage="data-detail"

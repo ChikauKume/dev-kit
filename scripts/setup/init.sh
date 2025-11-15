@@ -1,5 +1,5 @@
 #!/bin/bash
-# Spec-Workflow TDD セットアップスクリプト
+# Spec-Workflow タスクベース開発 セットアップスクリプト
 #
 # 新規Laravelプロジェクトにdev-kitを導入するための初期化スクリプト
 #
@@ -20,7 +20,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 echo "========================================================================"
-echo -e "${BLUE}🚀 Spec-Workflow TDD Setup${NC}"
+echo -e "${BLUE}🚀 Spec-Workflow タスクベース開発 Setup${NC}"
 echo "========================================================================"
 echo ""
 echo "Project Root: $PROJECT_ROOT"
@@ -162,25 +162,28 @@ if command -v jq &> /dev/null; then
 
     # ワークフローコマンドが正しく追加されたか確認
     if grep -q '"workflow:prepare"' "$PROJECT_ROOT/package.json" && \
-       grep -q '"tdd:red"' "$PROJECT_ROOT/package.json" && \
-       grep -q '"tdd:green"' "$PROJECT_ROOT/package.json" && \
-       grep -q '"generate:phpunit"' "$PROJECT_ROOT/package.json" && \
-       grep -q '"generate:e2e"' "$PROJECT_ROOT/package.json"; then
+       grep -q '"task:status"' "$PROJECT_ROOT/package.json" && \
+       grep -q '"generate:e2e"' "$PROJECT_ROOT/package.json" && \
+       grep -q '"generate:phpunit"' "$PROJECT_ROOT/package.json"; then
         echo -e "${GREEN}   ✅ All workflow commands successfully added:${NC}"
-        echo -e "${GREEN}      - workflow:prepare, workflow:step1-5${NC}"
-        echo -e "${GREEN}      - tdd:status, tdd:red, tdd:green${NC}"
-        echo -e "${GREEN}      - generate:phpunit, generate:e2e${NC}"
+        echo -e "${GREEN}      - workflow:prepare${NC}"
+        echo -e "${GREEN}      - task:status${NC}"
+        echo -e "${GREEN}      - validate:* (env, deps, frontend, backend, integration, etc.)${NC}"
+        echo -e "${GREEN}      - generate:e2e, generate:phpunit${NC}"
         echo -e "${GREEN}      - bg:list, bg:clean${NC}"
     else
         echo -e "${YELLOW}   ⚠️  Some workflow commands may be missing${NC}"
         echo -e "${YELLOW}      Please check package.json manually${NC}"
 
         # 具体的に何が欠けているか表示
-        if ! grep -q '"generate:phpunit"' "$PROJECT_ROOT/package.json"; then
-            echo -e "${RED}      ❌ Missing: generate:phpunit${NC}"
+        if ! grep -q '"task:status"' "$PROJECT_ROOT/package.json"; then
+            echo -e "${RED}      ❌ Missing: task:status${NC}"
         fi
         if ! grep -q '"generate:e2e"' "$PROJECT_ROOT/package.json"; then
             echo -e "${RED}      ❌ Missing: generate:e2e${NC}"
+        fi
+        if ! grep -q '"generate:phpunit"' "$PROJECT_ROOT/package.json"; then
+            echo -e "${RED}      ❌ Missing: generate:phpunit${NC}"
         fi
     fi
 
@@ -518,6 +521,20 @@ fi
 echo ""
 
 # ========================================================================
+# 9.5. テストテンプレート生成
+# ========================================================================
+echo -e "${BLUE}📝 Step 9.5: Test Template Generation${NC}"
+echo "------------------------------------------------------------------------"
+
+if [ -f "$PROJECT_ROOT/dev-kit/scripts/setup/create-test-templates.sh" ]; then
+    "$PROJECT_ROOT/dev-kit/scripts/setup/create-test-templates.sh"
+else
+    echo -e "${YELLOW}⚠️  Test template generator not found (skipping)${NC}"
+fi
+
+echo ""
+
+# ========================================================================
 # 10. 実行権限付与
 # ========================================================================
 echo -e "${BLUE}📝 Step 10: Execute Permissions${NC}"
@@ -525,14 +542,10 @@ echo "------------------------------------------------------------------------"
 
 chmod +x "$PROJECT_ROOT/dev-kit/scripts/validate"/*.sh 2>/dev/null || true
 chmod +x "$PROJECT_ROOT/dev-kit/scripts/validate"/*.php 2>/dev/null || true
-chmod +x "$PROJECT_ROOT/dev-kit/scripts/common"/*.sh 2>/dev/null || true
 chmod +x "$PROJECT_ROOT/dev-kit/scripts/generate"/*.php 2>/dev/null || true
 chmod +x "$PROJECT_ROOT/dev-kit/scripts/generate"/*.cjs 2>/dev/null || true
 chmod +x "$PROJECT_ROOT/dev-kit/scripts/setup"/*.sh 2>/dev/null || true
-chmod +x "$PROJECT_ROOT/dev-kit/scripts/fix"/*.sh 2>/dev/null || true
-chmod +x "$PROJECT_ROOT/dev-kit/scripts/workflow"/*.sh 2>/dev/null || true
-chmod +x "$PROJECT_ROOT/dev-kit/scripts/preparation"/*.sh 2>/dev/null || true
-chmod +x "$PROJECT_ROOT/dev-kit/scripts/diagnose"/*.sh 2>/dev/null || true
+chmod +x "$PROJECT_ROOT/dev-kit/scripts/task"/*.sh 2>/dev/null || true
 chmod +x "$PROJECT_ROOT/dev-kit/scripts/bg"/*.sh 2>/dev/null || true
 
 echo -e "${GREEN}✅ Execute permissions set for all scripts${NC}"
@@ -625,6 +638,24 @@ else
     else
         echo -e "${GREEN}✅ Database configuration found in .env${NC}"
     fi
+
+    # APP_LOCALE設定チェック（日本語バリデーションメッセージ用）
+    if grep -q "^APP_LOCALE=en$" "$PROJECT_ROOT/.env"; then
+        echo -e "${YELLOW}⚠️  APP_LOCALE is set to 'en' in .env${NC}"
+        echo -e "${YELLOW}   This will cause mixed English+Japanese validation messages${NC}"
+        echo ""
+        echo "   RECOMMENDED: Change to Japanese locale:"
+        echo -e "${BLUE}   APP_LOCALE=ja${NC}"
+        echo ""
+        echo "   This ensures validation messages are fully in Japanese:"
+        echo "   ✅ 'メールアドレスには、有効なメールアドレスを指定してください。'"
+        echo "   ❌ 'The メールアドレス field must be a valid email address.'"
+    elif grep -q "^APP_LOCALE=ja$" "$PROJECT_ROOT/.env"; then
+        echo -e "${GREEN}✅ APP_LOCALE correctly set to 'ja' for Japanese validation messages${NC}"
+    else
+        echo -e "${YELLOW}⚠️  APP_LOCALE not found or has unexpected value in .env${NC}"
+        echo "   Add: ${BLUE}APP_LOCALE=ja${NC}"
+    fi
 fi
 
 echo ""
@@ -638,16 +669,14 @@ echo "------------------------------------------------------------------------"
 # package.jsonからworkflow関連コマンドを抽出して確認
 WORKFLOW_COMMANDS=(
     "workflow:prepare"
-    "workflow:step1"
-    "workflow:step2"
-    "workflow:step3-test"
-    "workflow:step4"
-    "workflow:step5"
-    "generate:phpunit"
+    "task:status"
+    "validate:integration"
+    "validate:japanese"
+    "validate:e2e-integrity"
+    "validate:inertia"
+    "validate:principles"
     "generate:e2e"
-    "tdd:status"
-    "tdd:red"
-    "tdd:green"
+    "generate:phpunit"
 )
 
 MISSING_COMMANDS=()
@@ -697,22 +726,21 @@ echo ""
 echo "  5. Run environment validation:"
 echo "     ${BLUE}npm run validate:env${NC}"
 echo ""
-echo "  6. Start TDD workflow with your spec name (example: 'user-authentication'):"
+echo "  6. Start task-based workflow with your spec name (example: 'login'):"
 echo "     ${BLUE}npm run workflow:prepare {SPEC_NAME}${NC}"
 echo ""
 echo "     Example workflow commands:"
-echo "     ${BLUE}npm run workflow:prepare user-authentication${NC}  # Prepare workflow"
-echo "     ${BLUE}npm run workflow:step1 user-authentication${NC}     # Generate skeletons"
+echo "     ${BLUE}npm run workflow:prepare login${NC}  # Prepare environment"
+echo "     ${BLUE}npm run task:status login${NC}       # Check task progress"
 echo ""
 echo "     Test generation commands:"
-echo "     ${BLUE}npm run generate:phpunit user-authentication${NC}   # Generate PHPUnit tests"
-echo "     ${BLUE}npm run generate:e2e user-authentication${NC}       # Generate E2E tests"
+echo "     ${BLUE}npm run generate:phpunit login${NC}  # Generate PHPUnit tests + Clean Architecture"
+echo "     ${BLUE}npm run generate:e2e login${NC}      # Generate E2E tests"
 echo ""
-echo "     TDD cycle commands:"
-echo "     ${BLUE}npm run workflow:step2 user-authentication${NC}     # Start TDD cycle"
-echo "     ${BLUE}npm run tdd:status user-authentication${NC}         # Check progress"
-echo "     ${BLUE}npm run tdd:red user-authentication${NC}            # Run failing tests"
-echo "     ${BLUE}npm run tdd:green user-authentication${NC}          # Verify passing tests"
+echo "     Validation commands:"
+echo "     ${BLUE}npm run validate:frontend${NC}       # Validate frontend implementation"
+echo "     ${BLUE}npm run validate:backend login${NC}  # Validate backend implementation"
+echo "     ${BLUE}npm run validate:integration${NC}    # Validate integration"
 echo ""
 echo "     ${YELLOW}For detailed workflow instructions, see:${NC}"
 echo "     ${BLUE}dev-kit/docs/workflow.md${NC}"
@@ -723,7 +751,7 @@ echo "========================================================================"
 echo ""
 echo -e "${YELLOW}⚠️  IMPORTANT:${NC}"
 echo "  - All PHP/Artisan commands must use ${BLUE}./vendor/bin/sail${NC}"
-echo "  - All workflow commands follow the pattern: ${BLUE}npm run workflow:*${NC} or ${BLUE}npm run tdd:*${NC}"
+echo "  - All workflow commands follow the pattern: ${BLUE}npm run workflow:prepare${NC}, ${BLUE}npm run task:status${NC}, ${BLUE}npm run validate:*${NC}"
 echo "  - Claude AI will now follow workflow.md instructions correctly"
 echo ""
 echo "========================================================================"

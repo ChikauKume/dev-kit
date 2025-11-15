@@ -126,6 +126,51 @@ else
 fi
 
 # ========================================================================
+# 5. .env設定値の検証
+# ========================================================================
+echo ""
+echo -e "${BLUE}📝 Step 5: .env Configuration Validation${NC}"
+echo "------------------------------------------------------------------------"
+
+if [ -f "$PROJECT_ROOT/.env" ]; then
+    # SESSION_DOMAIN=nullの誤設定チェック
+    if grep -q "^SESSION_DOMAIN=null$" "$PROJECT_ROOT/.env"; then
+        echo -e "${RED}❌ WARNING: SESSION_DOMAIN is set to string 'null'${NC}"
+        echo "   This can cause session issues. Should be empty:"
+        echo "   SESSION_DOMAIN="
+        EXIT_CODE=1
+    elif grep -q "^SESSION_DOMAIN=$" "$PROJECT_ROOT/.env"; then
+        echo -e "${GREEN}✅ SESSION_DOMAIN is properly configured (empty)${NC}"
+    elif grep -q "^SESSION_DOMAIN=" "$PROJECT_ROOT/.env"; then
+        SESSION_DOMAIN_VALUE=$(grep "^SESSION_DOMAIN=" "$PROJECT_ROOT/.env" | cut -d'=' -f2)
+        echo -e "${GREEN}✅ SESSION_DOMAIN is set to: $SESSION_DOMAIN_VALUE${NC}"
+    else
+        echo -e "${YELLOW}⚠️  SESSION_DOMAIN not found in .env${NC}"
+    fi
+
+    # SESSION_DRIVER確認
+    if grep -q "^SESSION_DRIVER=" "$PROJECT_ROOT/.env"; then
+        SESSION_DRIVER=$(grep "^SESSION_DRIVER=" "$PROJECT_ROOT/.env" | cut -d'=' -f2)
+        echo -e "${GREEN}✅ SESSION_DRIVER: $SESSION_DRIVER${NC}"
+    else
+        echo -e "${RED}❌ WARNING: SESSION_DRIVER not found in .env${NC}"
+        EXIT_CODE=1
+    fi
+
+    # APP_KEY確認
+    if grep -q "^APP_KEY=base64:" "$PROJECT_ROOT/.env"; then
+        echo -e "${GREEN}✅ APP_KEY is configured${NC}"
+    else
+        echo -e "${RED}❌ CRITICAL: APP_KEY not configured${NC}"
+        echo "   Run: ./vendor/bin/sail artisan key:generate"
+        EXIT_CODE=1
+    fi
+else
+    echo -e "${RED}❌ CRITICAL: .env file not found${NC}"
+    EXIT_CODE=1
+fi
+
+# ========================================================================
 # 最終サマリー
 # ========================================================================
 echo ""

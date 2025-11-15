@@ -1,5 +1,4 @@
 import React from 'react';
-import TemplateNavigation from '../../../components/navigation/TemplateNavigation';
 import { useViewMode } from '../../../hooks/useViewMode';
 import Icon from '../../../components/icons/Icon';
 
@@ -46,11 +45,6 @@ const PasswordResetEmailPage: React.FC<PasswordResetEmailPageProps> = ({
 
   return (
     <div className={viewMode === 'sp' ? 'force-mobile' : ''}>
-      <TemplateNavigation
-        hide={hideNavigation}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      />
 
       <div className="email-preview-container">
         {/* Email Template */}

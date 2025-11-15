@@ -1,5 +1,4 @@
 import React from 'react';
-import TemplateNavigation from '../../../components/navigation/TemplateNavigation';
 import { useViewMode } from '../../../hooks/useViewMode';
 import { BaseAuthPageProps } from '../../../types/inertia';
 
@@ -86,11 +85,6 @@ const SignupConfirmPage: React.FC<SignupConfirmPageProps> = (props) => {
 
   return (
     <div className={viewMode === 'sp' ? 'force-mobile' : ''}>
-      <TemplateNavigation
-        hide={props.hideNavigation}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      />
       <div className="login-screen">
         <div className="login-card">
           <h1 className="login-title">登録内容の確認</h1>

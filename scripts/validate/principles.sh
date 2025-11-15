@@ -146,6 +146,28 @@ fi
 echo ""
 
 # ------------------------------------------------------------------------
+# DO-4.5: APP_LOCALE=ja（日本語バリデーションメッセージ）
+# ------------------------------------------------------------------------
+echo -e "${BLUE}🔍 DO-4.5: APP_LOCALE=ja（日本語バリデーションメッセージ）${NC}"
+echo "------------------------------------------------------------------------"
+
+TOTAL_PRINCIPLES=$((TOTAL_PRINCIPLES + 1))
+
+# locale-check.sh でチェック
+if "$SCRIPT_DIR/locale-check.sh" > /dev/null 2>&1; then
+    echo -e "${GREEN}✅ PASSED - APP_LOCALE correctly set to 'ja'${NC}"
+    PASSED_PRINCIPLES=$((PASSED_PRINCIPLES + 1))
+    DO_RESULTS+=("✅ APP_LOCALE=ja（日本語バリデーションメッセージ）")
+else
+    echo -e "${RED}❌ FAILED - Locale configuration incorrect${NC}"
+    echo "   Run: npm run validate:locale"
+    FAILED_PRINCIPLES=$((FAILED_PRINCIPLES + 1))
+    DO_RESULTS+=("❌ APP_LOCALE=ja（日本語バリデーションメッセージ）")
+fi
+
+echo ""
+
+# ------------------------------------------------------------------------
 # DO-5: すべての品質ゲート通過
 # ------------------------------------------------------------------------
 echo -e "${BLUE}🔍 DO-5: すべての品質ゲート通過${NC}"
@@ -153,7 +175,7 @@ echo "------------------------------------------------------------------------"
 
 TOTAL_PRINCIPLES=$((TOTAL_PRINCIPLES + 1))
 
-# DO-1からDO-4までの結果で判定（環境、フロント、バック、デザイン、日本語）
+# DO-1からDO-4.5までの結果で判定（環境、フロント、バック、デザイン、日本語、ロケール）
 GATE_FAILURES=0
 
 # 環境検証
@@ -411,6 +433,67 @@ else
     echo -e "${BLUE}ℹ️  PASSED - No TDD state file (pre-TDD phase)${NC}"
     PASSED_PRINCIPLES=$((PASSED_PRINCIPLES + 1))
     DONT_RESULTS+=("✅ 実装前のテスト作成をスキップ（禁止）(not configured)")
+fi
+
+echo ""
+
+# ------------------------------------------------------------------------
+# DON'T-8: YAGNI違反（使われていないprops/機能の追加）
+# ------------------------------------------------------------------------
+echo -e "${BLUE}🔍 DON'T-8: YAGNI違反（使われていないprops/機能）${NC}"
+echo "------------------------------------------------------------------------"
+
+TOTAL_PRINCIPLES=$((TOTAL_PRINCIPLES + 1))
+
+echo "Checking for YAGNI violations (unused props/features)..."
+
+YAGNI_VIOLATIONS=0
+
+# ui-components templates で定義されているが実際には使われていない props を検出
+
+# 1. hideNavigation prop チェック
+if grep -rq "hideNavigation" "$PROJECT_ROOT/dev-kit/ui-components/src" 2>/dev/null; then
+    TEMPLATE_USAGE=$(grep -r "hideNavigation" "$PROJECT_ROOT/dev-kit/ui-components/src" --include="*.tsx" | wc -l | tr -d ' ')
+    PAGE_USAGE=$(grep -r "hideNavigation" "$PROJECT_ROOT/resources/js/Pages" --include="*.tsx" 2>/dev/null | wc -l | tr -d ' ')
+
+    echo "hideNavigation prop:"
+    echo "  - Template definitions: $TEMPLATE_USAGE"
+    echo "  - Page usage: $PAGE_USAGE"
+
+    if [ "$PAGE_USAGE" -eq 0 ] && [ "$TEMPLATE_USAGE" -gt 0 ]; then
+        echo -e "${RED}❌ YAGNI violation: hideNavigation prop defined but never used${NC}"
+        echo "   Remove unused prop from templates"
+        YAGNI_VIOLATIONS=$((YAGNI_VIOLATIONS + 1))
+    fi
+fi
+
+# 2. 未使用のカスタムフック検出
+CUSTOM_HOOKS=$(find "$PROJECT_ROOT/dev-kit/ui-components/src/hooks" -name "use*.ts" 2>/dev/null)
+if [ -n "$CUSTOM_HOOKS" ]; then
+    for hook in $CUSTOM_HOOKS; do
+        HOOK_NAME=$(basename "$hook" .ts)
+        USAGE_COUNT=$(grep -r "$HOOK_NAME" "$PROJECT_ROOT/resources/js/Pages" --include="*.tsx" 2>/dev/null | wc -l | tr -d ' ')
+
+        if [ "$USAGE_COUNT" -eq 0 ]; then
+            echo -e "${YELLOW}⚠️  WARNING: Hook $HOOK_NAME not used in any pages${NC}"
+            # Don't count as violation if it's a utility hook
+        fi
+    done
+fi
+
+echo ""
+
+if [ $YAGNI_VIOLATIONS -eq 0 ]; then
+    echo -e "${GREEN}✅ PASSED - No YAGNI violations detected${NC}"
+    PASSED_PRINCIPLES=$((PASSED_PRINCIPLES + 1))
+    DONT_RESULTS+=("✅ YAGNI違反（禁止）")
+else
+    echo -e "${RED}❌ FAILED - Found $YAGNI_VIOLATIONS YAGNI violation(s)${NC}"
+    echo ""
+    echo "YAGNI Principle: You Aren't Gonna Need It"
+    echo "Remove features/props that aren't currently used."
+    FAILED_PRINCIPLES=$((FAILED_PRINCIPLES + 1))
+    DONT_RESULTS+=("❌ YAGNI違反（禁止）")
 fi
 
 echo ""

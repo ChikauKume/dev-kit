@@ -657,7 +657,6 @@ export const DetailPageWithInfoPageWrapperExample: React.FC = () => {
 import React, { useState, useRef } from 'react';
 import DetailPage from '../../templates/data/DetailPage';
 import InfoPageWrapper from '../../../components/layout/InfoPageWrapper';
-import TemplateNavigation from '../../../components/navigation/TemplateNavigation';
 import { useViewMode } from '../../../hooks/useViewMode';
 
 const DataDetailPage: React.FC = () => {
@@ -697,10 +696,7 @@ const DataDetailPage: React.FC = () => {
 
   return (
     <div className={viewMode === 'sp' ? 'force-mobile' : ''}>
-      <TemplateNavigation
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      />
+      
       <InfoPageWrapper
         viewMode={viewMode}
         currentPage="data-detail"

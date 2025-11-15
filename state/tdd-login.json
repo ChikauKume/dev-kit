@@ -1,0 +1,12 @@
+{
+  "spec": "login",
+  "pages": {
+    "Login": {"status": "in_progress", "red": true, "green": false},
+    "Dashboard": {"status": "pending", "red": false, "green": false},
+    "Error404": {"status": "pending", "red": false, "green": false},
+    "Error500": {"status": "pending", "red": false, "green": false}
+  },
+  "current_page": null,
+  "total_pages": 4,
+  "completed_pages": 0
+}

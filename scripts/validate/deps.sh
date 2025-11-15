@@ -37,5 +37,21 @@ else
     echo "✅ public/hot file does not exist"
 fi
 
+# Laravel Debugbar がプロダクション依存関係に含まれていないかチェック
+echo ""
+echo "🔍 Checking for debug/development packages..."
+if grep -q '"barryvdh/laravel-debugbar"' "$PROJECT_ROOT/composer.json" | grep -v "require-dev"; then
+    echo "⚠️  WARNING: Laravel Debugbar found in production dependencies"
+    echo "   This package should only be in require-dev section."
+    echo "   Debugbar output can interfere with E2E tests (strict mode violations)."
+    echo "   Consider moving it to require-dev:"
+    echo "   composer remove barryvdh/laravel-debugbar"
+    echo "   composer require --dev barryvdh/laravel-debugbar"
+elif grep -q '"barryvdh/laravel-debugbar"' "$PROJECT_ROOT/composer.json"; then
+    echo "✅ Laravel Debugbar is properly in require-dev section"
+else
+    echo "✅ No Laravel Debugbar dependency found"
+fi
+
 echo ""
 echo "✅ All dependency checks passed"

@@ -205,6 +205,40 @@ echo ""
 # echo ""
 
 # ========================================================================
+# 7. E2E Test Prerequisites Implementation Check
+# ========================================================================
+echo -e "${BLUE}📝 Check 7: E2E Test Prerequisites Implementation${NC}"
+echo "------------------------------------------------------------------------"
+
+SPEC_NAME="${1:-}"
+
+if [ -n "$SPEC_NAME" ]; then
+    echo "Checking E2E prerequisites implementation for spec: $SPEC_NAME"
+
+    # Call e2e-integrity.sh if it exists
+    E2E_INTEGRITY_SCRIPT="$PROJECT_ROOT/dev-kit/scripts/validate/e2e-integrity.sh"
+
+    if [ -x "$E2E_INTEGRITY_SCRIPT" ]; then
+        echo "Running e2e-integrity check..."
+        if "$E2E_INTEGRITY_SCRIPT" "$SPEC_NAME"; then
+            echo -e "${GREEN}✅ E2E prerequisites correctly implemented${NC}"
+        else
+            echo -e "${RED}❌ E2E prerequisites validation failed${NC}"
+            echo "   Run: npm run validate:e2e-integrity $SPEC_NAME"
+            EXIT_CODE=1
+        fi
+    else
+        echo -e "${YELLOW}⚠️  e2e-integrity.sh not found (skipping prerequisites check)${NC}"
+        echo "   Location: $E2E_INTEGRITY_SCRIPT"
+    fi
+else
+    echo -e "${YELLOW}⚠️  No spec name provided, skipping E2E prerequisites check${NC}"
+    echo "   Usage: $0 <spec-name>"
+fi
+
+echo ""
+
+# ========================================================================
 # 最終サマリー
 # ========================================================================
 echo "========================================================================"

@@ -3,7 +3,6 @@ import Icon from '../../../components/icons/Icon';
 import InputField from '../../../components/forms/InputField';
 import Checkbox from '../../../components/forms/Checkbox';
 import PaginationPanel from '../../../components/tables/PaginationPanel';
-import TemplateNavigation from '../../../components/navigation/TemplateNavigation';
 import InfoPageWrapper from '../../../components/layout/InfoPageWrapper';
 import { useViewMode } from '../../../hooks/useViewMode';
 import type { DataListPageProps } from '../../../types/tables/TableProps';
@@ -503,10 +502,7 @@ const ListPage: React.FC<DataListPageProps> = ({
   if (!loading && data.length === 0 && !searchHook.hasActiveFilters) {
     return (
       <div className={viewMode === 'sp' ? 'force-mobile' : ''}>
-        <TemplateNavigation
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-        />
+        
         <InfoPageWrapper
           viewMode={viewMode}
           currentPage="data-list"
@@ -569,10 +565,7 @@ const ListPage: React.FC<DataListPageProps> = ({
 
   return (
     <div className={viewMode === 'sp' ? 'force-mobile' : ''}>
-      <TemplateNavigation
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      />
+      
       <InfoPageWrapper
         viewMode={viewMode}
         currentPage="data-list"

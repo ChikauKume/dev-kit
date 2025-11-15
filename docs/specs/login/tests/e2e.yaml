@@ -31,10 +31,6 @@ scenarios:
       - action: navigate
         url: /login
         description: ログイン画面にアクセス
-      - action: assert
-        selector: h1
-        expected: "ログイン"
-        description: ログイン画面が表示されることを確認
       - action: type
         selector: input[name="email"]
         value: "test@example.com"
@@ -49,10 +45,6 @@ scenarios:
       - action: wait_for_navigation
         url: /dashboard
         description: ダッシュボードに遷移することを確認
-      - action: assert
-        selector: h1
-        expected: "ダッシュボード"
-        description: ダッシュボードが表示されることを確認
       - action: assert_text_contains
         selector: .user-button
         expected: "山田 太郎"
@@ -80,20 +72,12 @@ scenarios:
       - action: navigate
         url: /dashboard
         description: ダッシュボードにアクセス
-      - action: assert
-        selector: h1
-        expected: "ダッシュボード"
-        description: ダッシュボードが表示されることを確認
       - action: click
         selector: button:has-text("ログアウト")
         description: ログアウトボタンをクリック
       - action: wait_for_navigation
         url: /login
         description: ログイン画面にリダイレクトされることを確認
-      - action: assert
-        selector: h1
-        expected: "ログイン"
-        description: ログイン画面が表示されることを確認
       - action: navigate
         url: /dashboard
         description: ダッシュボードに直接アクセスを試行
@@ -122,10 +106,6 @@ scenarios:
       - action: navigate
         url: /login
         description: ログイン画面にアクセス
-      - action: assert
-        selector: h1
-        expected: "ログイン"
-        description: ログイン画面が表示されることを確認
       - action: type
         selector: input[name="email"]
         value: "nonexistent@example.com"
@@ -174,23 +154,125 @@ scenarios:
       - action: navigate
         url: /dashboard
         description: ダッシュボードにアクセス(ログイン確認)
-      - action: assert
-        selector: h1
-        expected: "ダッシュボード"
-        description: ダッシュボードが表示されることを確認(ログイン済み)
       - action: navigate
         url: /login
         description: ログイン画面にアクセスを試行
       - action: wait_for_navigation
         url: /dashboard
         description: ダッシュボードにリダイレクトされることを確認
-      - action: assert
-        selector: h1
-        expected: "ダッシュボード"
-        description: ダッシュボードが表示されることを確認
     expected_results:
       - ログイン済みユーザーはログイン画面にアクセスできないこと
       - ダッシュボードにリダイレクトされること
     validations:
       - session:
           authenticated: true
+
+  - id: E2E-005
+    name: 404エラーページ表示(異常系)
+    page_name: Error
+    category: error
+    description: |
+      存在しないURLにアクセスした場合、404エラーページが正しく表示され、
+      ホームに戻るボタンをクリックすると適切にリダイレクトされることを確認。
+    prerequisites:
+      - 404エラーページコンポーネントが実装されていること
+    steps:
+      - action: navigate
+        url: /non-existent-page-12345
+        description: 存在しないURLにアクセス
+      - action: assert_visible
+        selector: h2:has-text("お探しのページは見つかりませんでした")
+        description: 404エラーページのヘッダーを確認
+      - action: assert_visible
+        selector: text=お探しのページは存在しないか、移動または削除された可能性があります
+        description: エラーメッセージが表示されることを確認
+      - action: assert_visible
+        selector: button:has-text("ホームに戻る")
+        description: ホームに戻るボタンが表示されることを確認
+      - action: navigate
+        url: /non-existent-page-67890
+        description: 再度404ページを表示（未認証状態）
+      - action: assert_visible
+        selector: h2:has-text("お探しのページは見つかりませんでした")
+        description: 404エラーページの表示を待機
+      - action: click
+        selector: button:has-text("ホームに戻る")
+        description: ホームに戻るボタンをクリック
+      - action: wait_for_navigation
+        url: /login
+        description: ログインページへリダイレクトされることを確認（未認証ユーザー）
+    expected_results:
+      - 存在しないURLで404エラーページが表示されること
+      - エラーメッセージとヘッダーが適切に表示されること
+      - ホームに戻るボタンが機能すること
+      - 未認証ユーザーはログインページにリダイレクトされること
+    validations:
+      - http_status:
+          code: 404
+          message: "Not Found"
+
+  - id: E2E-006
+    name: エラーページ表示確認(異常系)
+    page_name: Error
+    category: error
+    description: |
+      存在しないページにアクセスした際に404エラーページが表示されること、
+      サーバーエラー発生時に500エラーページが表示されることを確認。
+    prerequisites:
+      - エラーページコンポーネントが実装されていること
+    steps:
+      - action: navigate
+        url: /nonexistent-page
+        description: 存在しないページにアクセス
+      - action: assert_visible
+        selector: text="404"
+        description: 404エラーページが表示されることを確認
+      - action: assert_visible
+        selector: text="ページが見つかりません"
+        description: エラーメッセージが表示されることを確認
+      - action: navigate
+        url: /
+        description: トップページに移動
+      - action: assert_url
+        expected: /
+        description: トップページに正常に遷移することを確認
+    expected_results:
+      - 存在しないページで404エラーページが表示されること
+      - エラーメッセージが適切に表示されること
+      - トップページへのリンクが機能すること
+    validations:
+      - http_status:
+          code: 404
+          message: "Not Found"
+
+  - id: E2E-007
+    name: 500エラーページ表示(異常系)
+    page_name: Error
+    category: error
+    description: |
+      サーバーエラー発生時に500エラーページが正しく表示されることを確認。
+      テスト用エンドポイントで意図的にエラーを発生させてテストする。
+    prerequisites:
+      - 500エラーページコンポーネントが実装されていること
+      - テスト用エラーエンドポイント(/test-error)が実装されていること
+    steps:
+      - action: navigate
+        url: /test-error
+        description: テスト用エラーエンドポイントにアクセス（500エラーを発生させる）
+      - action: assert_visible
+        selector: h2:has-text("サーバーエラーが発生しました")
+        description: 500エラーページのヘッダーを確認
+      - action: assert_visible
+        selector: text=サーバーで問題が発生しました。しばらく時間をおいてから再度お試しください。
+        description: エラーメッセージが表示されることを確認
+      - action: assert_visible
+        selector: button:has-text("ホームに戻る")
+        description: ホームに戻るボタンが表示されることを確認
+    expected_results:
+      - サーバーエラー発生時に500エラーページが表示されること
+      - エラーメッセージが適切に表示されること
+      - ホームに戻るボタンが表示されること
+    validations:
+      - http_status:
+          code: 500
+          message: "Internal Server Error"

@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
 import Accordion from '../../../components/common/Accordion';
-import TemplateNavigation from '../../../components/navigation/TemplateNavigation';
 import InfoPageWrapper from '../../../components/layout/InfoPageWrapper';
 import { useViewMode } from '../../../hooks/useViewMode';
 
@@ -20,7 +19,7 @@ import { useViewMode } from '../../../hooks/useViewMode';
  */
 interface QnaPageProps {
   hideNavigation?: boolean;
-  onNavigate?: (page: string) => void;
+  onNavigate: (page: string) => void;
   /**
    * Callback for logout action
    *
@@ -29,7 +28,7 @@ interface QnaPageProps {
    * onLogout={() => router.post('/logout')}
    * ```
    */
-  onLogout?: () => void;
+  onLogout: () => void;
 }
 
 const QnaPage: React.FC<QnaPageProps> = ({ hideNavigation, onNavigate, onLogout }) => {
@@ -188,11 +187,6 @@ const QnaPage: React.FC<QnaPageProps> = ({ hideNavigation, onNavigate, onLogout 
 
   return (
     <div className={viewMode === 'sp' ? 'force-mobile' : ''}>
-      <TemplateNavigation
-        hide={hideNavigation}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      />
       <InfoPageWrapper
         viewMode={viewMode}
         currentPage="qna"

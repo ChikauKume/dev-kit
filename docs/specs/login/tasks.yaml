@@ -1,0 +1,200 @@
+# タスク管理ファイル (Task-Based Development)
+#
+# このファイルは機能実装をタスク単位で管理します
+# 各タスクは明確な責任範囲を持ち、依存関係を定義します
+
+spec: login
+
+tasks:
+  # ========================================================================
+  # フェーズ1: UI実装
+  # ========================================================================
+
+  - id: TASK-001
+    title: Login画面UI実装
+    description: |
+      LoginPageコンポーネントをui-componentsテンプレートで実装
+      - ui-components/LoginPageテンプレートを使用
+      - メールアドレスとパスワードの入力フィールド
+      - ログインボタン
+      - バリデーションメッセージ表示
+    phase: frontend
+    type: implementation
+    status: pending
+    dependencies: []
+    estimated_time: 45min
+    files:
+      - resources/js/Pages/Auth/Login.tsx
+
+  # ========================================================================
+  # フェーズ2: バックエンド実装
+  # ========================================================================
+
+  - id: TASK-002
+    title: LoginControllerのバックエンド実装
+    description: |
+      Clean Architectureに従ってログイン機能のバックエンドを実装
+      - Domain層: User Entity
+      - Application層: LoginUseCase
+      - Infrastructure層: UserRepository
+      - Presentation層: AuthController
+      - Japanese validation messages
+    phase: backend
+    type: implementation
+    status: pending
+    dependencies: []
+    estimated_time: 60min
+    files:
+      - app/Modules/User/Domain/Entities/User.php
+      - app/Modules/User/Application/UseCases/LoginUser.php
+      - app/Modules/User/Infrastructure/Repositories/EloquentUserRepository.php
+      - app/Modules/User/Presentation/Controllers/AuthController.php
+      - lang/ja/validation.php
+
+  # ========================================================================
+  # フェーズ3: E2Eテスト実装と検証
+  # ========================================================================
+
+  - id: TASK-003
+    title: E2E-001を通す（正常系ログイン）
+    description: |
+      E2E-001テストを実装して成功させる
+      - 有効な認証情報でログイン
+      - ダッシュボードへリダイレクト確認
+      - セッション確立の検証
+    phase: e2e-testing
+    type: test-verification
+    status: pending
+    dependencies: [TASK-001, TASK-002]
+    estimated_time: 30min
+    test_file: tests/e2e/login/E2E-001.spec.ts
+
+  - id: TASK-004
+    title: E2E-003を通す（バリデーションエラー）
+    description: |
+      E2E-003テストを実装して成功させる
+      - 無効な認証情報でログイン試行
+      - エラーメッセージ表示確認
+      - フォームリセット確認
+    phase: e2e-testing
+    type: test-verification
+    status: pending
+    dependencies: [TASK-001, TASK-002]
+    estimated_time: 30min
+    test_file: tests/e2e/login/E2E-003.spec.ts
+
+  # ========================================================================
+  # フェーズ4: Dashboard実装（E2E-002の前提条件）
+  # ========================================================================
+
+  - id: TASK-005
+    title: Dashboard画面UI実装
+    description: |
+      DashboardPageコンポーネントをui-componentsテンプレートで実装
+      - ui-components/DashboardPageテンプレートを使用
+      - ログアウトボタン
+      - ユーザー情報表示
+    phase: frontend
+    type: implementation
+    status: pending
+    dependencies: [TASK-001, TASK-002]
+    estimated_time: 30min
+    files:
+      - resources/js/Pages/Dashboard.tsx
+
+  - id: TASK-006
+    title: DashboardControllerのバックエンド実装
+    description: |
+      ダッシュボード表示とログアウト機能の実装
+      - DashboardController@index
+      - DashboardController@logout
+      - 認証ミドルウェア確認
+    phase: backend
+    type: implementation
+    status: pending
+    dependencies: [TASK-002]
+    estimated_time: 30min
+    files:
+      - app/Modules/Dashboard/Presentation/Controllers/DashboardController.php
+
+  # ========================================================================
+  # フェーズ5: 残りのE2Eテスト検証
+  # ========================================================================
+
+  - id: TASK-007
+    title: E2E-002を通す（ログアウトとセッション無効化）
+    description: |
+      E2E-002テストを実装して成功させる
+      - ダッシュボードからログアウトボタンクリック
+      - ログイン画面へリダイレクト確認
+      - セッション破棄の検証
+      - 再度保護されたページへアクセスしてリダイレクト確認
+    phase: e2e-testing
+    type: test-verification
+    status: pending
+    dependencies: [TASK-005, TASK-006]
+    estimated_time: 20min
+    test_file: tests/e2e/login/E2E-002.spec.ts
+
+  - id: TASK-008
+    title: E2E-004を通す（認証済みユーザーのログイン画面アクセス）
+    description: |
+      E2E-004テストを実装して成功させる
+      - 既にログイン済みの状態でログイン画面にアクセス
+      - guestミドルウェアによる自動リダイレクト確認
+      - ダッシュボードへリダイレクトされることを検証
+    phase: e2e-testing
+    type: test-verification
+    status: pending
+    dependencies: [TASK-005, TASK-006]
+    estimated_time: 20min
+    test_file: tests/e2e/login/E2E-004.spec.ts
+
+  # ========================================================================
+  # フェーズ6: エラーページ実装
+  # ========================================================================
+
+  - id: TASK-009
+    title: Error404/Error500画面UI実装
+    description: |
+      エラーページコンポーネントをui-componentsテンプレートで実装
+      - ui-components/Error404Pageテンプレートを使用
+      - ui-components/Error500Pageテンプレートを使用
+    phase: frontend
+    type: implementation
+    status: pending
+    dependencies: []
+    estimated_time: 20min
+    test_file: tests/e2e/login/E2E-005.spec.ts
+    files:
+      - resources/js/Pages/Error/404.tsx
+      - resources/js/Pages/Error/500.tsx
+
+  # ========================================================================
+  # フェーズ7: 統合確認
+  # ========================================================================
+
+  - id: TASK-010
+    title: 全E2Eテスト統合確認
+    description: |
+      全てのE2Eテストを一括実行して成功を確認
+      - E2E-001, E2E-002, E2E-003, E2E-004
+      - 100% pass率を確認
+      - テストレポート生成
+    phase: integration
+    type: test-verification
+    status: pending
+    dependencies: [TASK-003, TASK-004, TASK-007, TASK-008]
+    estimated_time: 15min
+    test_file: tests/e2e/login/
+
+# ========================================================================
+# メタ情報
+# ========================================================================
+meta:
+  total_tasks: 10
+  completed_tasks: 0
+  progress_percentage: 0
+  next_task: TASK-001
+  estimated_total_time: 4h 50min
+  estimated_remaining_time: 4h 50min

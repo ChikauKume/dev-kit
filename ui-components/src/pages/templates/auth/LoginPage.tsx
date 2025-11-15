@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import Icon from '../../../components/icons/Icon';
 import InputField from '../../../components/forms/InputField';
 import Checkbox from '../../../components/forms/Checkbox';
-import TemplateNavigation from '../../../components/navigation/TemplateNavigation';
 import { useViewMode } from '../../../hooks/useViewMode';
 import { BaseAuthPageProps } from '../../../types/inertia';
 
@@ -74,8 +73,8 @@ interface LoginPageProps extends BaseAuthPageProps {
   onRememberMeChange?: (checked: boolean) => void;
   onEmailBlur?: (value: string) => void;
   onPasswordBlur?: (value: string) => void;
-  onSubmit?: (e: React.FormEvent<HTMLFormElement>) => void;
-  onNavigateToForgotPassword?: () => void;
+  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  onNavigateToForgotPassword: () => void;
   onNavigateToSignup?: () => void;
 }
 
@@ -212,11 +211,6 @@ const LoginPage: React.FC<LoginPageProps> = (props) => {
 
   return (
     <div className={viewMode === 'sp' ? 'force-mobile' : ''}>
-      <TemplateNavigation
-        hide={props.hideNavigation}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      />
       <div className="login-screen">
         <div className="login-card">
           <h1 className="login-title">ログイン</h1>

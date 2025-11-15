@@ -1,6 +1,5 @@
 import React from 'react';
 import Icon from '../../../components/icons/Icon';
-import TemplateNavigation from '../../../components/navigation/TemplateNavigation';
 import { useViewMode } from '../../../hooks/useViewMode';
 
 interface MaintenancePageProps {
@@ -13,11 +12,6 @@ const MaintenancePage: React.FC<MaintenancePageProps> = ({ hideNavigation }) => 
   const [viewMode, setViewMode] = useViewMode();
   return (
     <div className={viewMode === 'sp' ? 'force-mobile' : ''}>
-      <TemplateNavigation
-        hide={hideNavigation}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      />
       <div className="login-screen">
         <div className="login-card" style={{ maxWidth: '500px' }}>
         <div style={{ marginBottom: 'var(--spacing-6)' }}>

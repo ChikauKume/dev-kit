@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import InputField from '../../../components/forms/InputField';
 import Checkbox from '../../../components/forms/Checkbox';
-import TemplateNavigation from '../../../components/navigation/TemplateNavigation';
 import { useViewMode } from '../../../hooks/useViewMode';
 import { BaseAuthPageProps } from '../../../types/inertia';
 
@@ -90,8 +89,8 @@ interface SignupPageProps extends BaseAuthPageProps {
   onPhoneBlur?: (value: string) => void;
   onPasswordBlur?: (value: string) => void;
   onPasswordConfirmBlur?: (value: string) => void;
-  onSubmit?: (e: React.FormEvent<HTMLFormElement>) => void;
-  onNavigateToLogin?: () => void;
+  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  onNavigateToLogin: () => void;
 }
 
 const SignupPage: React.FC<SignupPageProps> = (props) => {
@@ -316,11 +315,6 @@ const SignupPage: React.FC<SignupPageProps> = (props) => {
 
   return (
     <div className={viewMode === 'sp' ? 'force-mobile' : ''}>
-      <TemplateNavigation
-        hide={props.hideNavigation}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      />
       <div className="login-screen">
         <div className="login-card">
           <h1 className="login-title">新規アカウント作成</h1>

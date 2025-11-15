@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import TemplateNavigation from '../../../components/navigation/TemplateNavigation';
 import InfoPageWrapper from '../../../components/layout/InfoPageWrapper';
 import StatMetricCard from '../../../components/statistics/StatMetricCard';
 import FilterPanel from '../../../components/statistics/FilterPanel';
@@ -215,10 +214,7 @@ const StatisticsPage: React.FC<StatisticsPageProps> = ({
 
   return (
     <div className={viewMode === 'sp' ? 'force-mobile' : ''}>
-      <TemplateNavigation
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      />
+      
       <InfoPageWrapper
         viewMode={viewMode}
         currentPage="statistics"

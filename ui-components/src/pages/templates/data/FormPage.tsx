@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import TemplateNavigation from '../../../components/navigation/TemplateNavigation';
 import InfoPageWrapper from '../../../components/layout/InfoPageWrapper';
 import Icon from '../../../components/icons/Icon';
 import DynamicFormFieldRenderer from '../../../components/forms/DynamicFormFieldRenderer';
@@ -312,10 +311,7 @@ const FormPage: React.FC<DynamicFormPageProps> = ({
   if (loading) {
     return (
       <div className={viewMode === 'sp' ? 'force-mobile' : ''}>
-        <TemplateNavigation
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-        />
+        
         <InfoPageWrapper
           viewMode={viewMode}
           currentPage="data-form"
@@ -350,10 +346,7 @@ const FormPage: React.FC<DynamicFormPageProps> = ({
 
   return (
     <div className={viewMode === 'sp' ? 'force-mobile' : ''}>
-      <TemplateNavigation
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      />
+      
       <InfoPageWrapper
         viewMode={viewMode}
         currentPage="data-form"

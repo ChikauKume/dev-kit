@@ -173,9 +173,22 @@ if [ -d "$PROJECT_ROOT/resources/js/Pages" ]; then
     # 直接的なHTML要素使用
     DIRECT_HTML_COUNT=$(grep -rE "<(input|button|form|select|textarea)" "$PROJECT_ROOT/resources/js/Pages" --include="*.tsx" 2>/dev/null | grep -v "ui-components" | wc -l | tr -d ' ')
     if [ "$DIRECT_HTML_COUNT" -gt 0 ]; then
-        echo -e "${RED}❌ Found $DIRECT_HTML_COUNT direct HTML element usage(s)${NC}"
-        echo "   FORBIDDEN: <input>, <button>, <form>, <select>, <textarea>"
-        echo "   REQUIRED: Use ui-components templates"
+        echo -e "${RED}❌ 直接HTMLタグ使用が検出されました (${DIRECT_HTML_COUNT}箇所)${NC}"
+        echo ""
+        echo "検出箇所:"
+        grep -rn "<(input|button|form|select|textarea)" "$PROJECT_ROOT/resources/js/Pages" --include="*.tsx" 2>/dev/null | grep -v "ui-components" | head -10 | while IFS=: read -r file line content; do
+            REL_FILE=$(echo "$file" | sed "s|$PROJECT_ROOT/||")
+            echo "  ${REL_FILE}:${line}"
+            echo "    ${content}"
+        done
+        if [ "$DIRECT_HTML_COUNT" -gt 10 ]; then
+            echo "  ... and $((DIRECT_HTML_COUNT - 10)) more"
+        fi
+        echo ""
+        echo "修正方法:"
+        echo "  1. <input>, <button>, <form>, <select>, <textarea>等のHTMLタグを削除"
+        echo "  2. ui-componentsのFormPage/ListPage/DetailPageテンプレートを使用"
+        echo "  3. 詳細: dev-kit/ui-components/CLAUDE.md を参照"
         EXIT_CODE=1
     else
         echo -e "${GREEN}✅ No direct HTML element usage detected${NC}"
@@ -184,9 +197,22 @@ if [ -d "$PROJECT_ROOT/resources/js/Pages" ]; then
     # Tailwind CSS残存チェック
     TAILWIND_COUNT=$(grep -rE "className=\".*\b(flex|grid|p-|m-|text-|bg-).*\"" "$PROJECT_ROOT/resources/js/Pages" --include="*.tsx" 2>/dev/null | wc -l | tr -d ' ')
     if [ "$TAILWIND_COUNT" -gt 0 ]; then
-        echo -e "${RED}❌ Found $TAILWIND_COUNT Tailwind CSS usage(s)${NC}"
-        echo "   FORBIDDEN: Tailwind CSS classes"
-        echo "   REQUIRED: Use ui-components styles only"
+        echo -e "${RED}❌ Tailwind CSS使用が検出されました (${TAILWIND_COUNT}箇所)${NC}"
+        echo ""
+        echo "検出箇所:"
+        grep -rn "className=\".*\b(flex|grid|p-|m-|text-|bg-).*\"" "$PROJECT_ROOT/resources/js/Pages" --include="*.tsx" 2>/dev/null | head -10 | while IFS=: read -r file line content; do
+            REL_FILE=$(echo "$file" | sed "s|$PROJECT_ROOT/||")
+            echo "  ${REL_FILE}:${line}"
+            echo "    ${content}"
+        done
+        if [ "$TAILWIND_COUNT" -gt 10 ]; then
+            echo "  ... and $((TAILWIND_COUNT - 10)) more"
+        fi
+        echo ""
+        echo "修正方法:"
+        echo "  1. className属性からTailwindクラス(flex, grid, p-, m-, text-, bg-等)を削除"
+        echo "  2. ui-componentsのテンプレートコンポーネントを使用"
+        echo "  3. カスタムスタイルが必要な場合はdesign.mdで定義"
         EXIT_CODE=1
     else
         echo -e "${GREEN}✅ No Tailwind CSS usage detected${NC}"
@@ -195,15 +221,243 @@ if [ -d "$PROJECT_ROOT/resources/js/Pages" ]; then
     # カスタムコンポーネント検出
     CUSTOM_COMPONENT_FILES=$(find "$PROJECT_ROOT/resources/js/components" -name "*.tsx" 2>/dev/null | wc -l | tr -d ' ')
     if [ "$CUSTOM_COMPONENT_FILES" -gt 0 ]; then
-        echo -e "${RED}❌ Found $CUSTOM_COMPONENT_FILES custom component file(s)${NC}"
-        echo "   FORBIDDEN: Custom component creation"
-        echo "   REQUIRED: Use ui-components templates only"
+        echo -e "${RED}❌ カスタムコンポーネントが検出されました (${CUSTOM_COMPONENT_FILES}ファイル)${NC}"
+        echo ""
+        echo "検出箇所:"
+        find "$PROJECT_ROOT/resources/js/components" -name "*.tsx" 2>/dev/null | head -10 | while read -r file; do
+            REL_FILE=$(echo "$file" | sed "s|$PROJECT_ROOT/||")
+            echo "  ${REL_FILE}"
+        done
+        if [ "$CUSTOM_COMPONENT_FILES" -gt 10 ]; then
+            echo "  ... and $((CUSTOM_COMPONENT_FILES - 10)) more"
+        fi
+        echo ""
+        echo "修正方法:"
+        echo "  1. resources/js/components/ 配下のファイルを削除"
+        echo "  2. ui-componentsのテンプレートのみを使用"
+        echo "  3. 禁止事項: カスタムコンポーネント作成 (DONT原則)"
         EXIT_CODE=1
     else
         echo -e "${GREEN}✅ No custom components detected${NC}"
     fi
 else
     echo -e "${YELLOW}⚠️  resources/js/Pages directory not found${NC}"
+fi
+
+echo ""
+
+# ========================================================================
+# Part 4.5: Demo-only Components Check (TemplateNavigation)
+# ========================================================================
+echo -e "${BLUE}📝 Part 4.5: Demo-only Components Check${NC}"
+echo "------------------------------------------------------------------------"
+
+UI_COMPONENTS_TEMPLATES="$PROJECT_ROOT/dev-kit/ui-components/src/pages/templates"
+
+if [ -d "$UI_COMPONENTS_TEMPLATES" ]; then
+    echo "Checking for demo-only components in production templates..."
+
+    # TemplateNavigation は ButtonsPage, FormsPage 等のデモページ専用
+    # templates/ 配下の本番テンプレートには含めてはいけない
+    TEMPLATE_NAV_MATCHES=$(grep -r "TemplateNavigation" "$UI_COMPONENTS_TEMPLATES/" \
+        --include="*.tsx" 2>/dev/null || true)
+
+    if [ -n "$TEMPLATE_NAV_MATCHES" ]; then
+        echo -e "${RED}❌ TemplateNavigation detected in production templates${NC}"
+        echo ""
+        echo "検出箇所:"
+        echo "$TEMPLATE_NAV_MATCHES" | while IFS=: read -r file line content; do
+            REL_FILE=$(echo "$file" | sed "s|$PROJECT_ROOT/||")
+            echo "  ${REL_FILE}:${line}"
+            echo "    ${content}"
+        done
+        echo ""
+        echo "修正方法:"
+        echo "  1. TemplateNavigation はデモページ専用コンポーネント"
+        echo "     (ButtonsPage、FormsPage、MessagesPage 等のショーケース用)"
+        echo "  2. templates/ 配下の本番テンプレートからは削除すること"
+        echo "  3. import文とコンポーネント使用箇所の両方を削除"
+        echo ""
+        EXIT_CODE=1
+    else
+        echo -e "${GREEN}✅ No demo-only components in production templates${NC}"
+    fi
+else
+    echo -e "${YELLOW}⚠️  ui-components templates directory not found${NC}"
+fi
+
+echo ""
+
+# ========================================================================
+# Part 4.6: Error Page Navigation Normalization Check
+# ========================================================================
+echo -e "${BLUE}📝 Part 4.6: Error Page Navigation Normalization Check${NC}"
+echo "------------------------------------------------------------------------"
+
+ERROR_PAGES=(
+    "resources/js/Pages/Error/404.tsx"
+    "resources/js/Pages/Error/500.tsx"
+)
+
+NAVIGATION_ISSUES=0
+
+for error_page in "${ERROR_PAGES[@]}"; do
+    ERROR_PAGE_PATH="$PROJECT_ROOT/$error_page"
+
+    if [ -f "$ERROR_PAGE_PATH" ]; then
+        echo "Checking: $(basename $error_page)"
+
+        # handleNavigate 関数の存在確認
+        if grep -q "handleNavigate" "$ERROR_PAGE_PATH"; then
+            echo -e "  ${GREEN}✅ Has handleNavigate function${NC}"
+
+            # normalization ロジックの確認
+            # ui-components は '/dashboard' または 'dashboard' を渡す可能性がある
+            # normalization: page.startsWith('/') ? page.substring(1) : page
+            if grep -A 10 "handleNavigate" "$ERROR_PAGE_PATH" | grep -q "startsWith('/')"; then
+                echo -e "  ${GREEN}✅ Has navigation normalization (handles both '/path' and 'path')${NC}"
+            else
+                echo -e "  ${RED}❌ MISSING navigation normalization${NC}"
+                echo ""
+                echo "     Problem: ui-components may pass '/dashboard' (with slash)"
+                echo "              but wrapper expects 'dashboard' (without slash)"
+                echo ""
+                echo "     Fix: Add normalization logic in handleNavigate:"
+                echo "     const normalizedPage = page.startsWith('/') ? page.substring(1) : page;"
+                echo ""
+                NAVIGATION_ISSUES=$((NAVIGATION_ISSUES + 1))
+                EXIT_CODE=1
+            fi
+        else
+            echo -e "  ${YELLOW}⚠️  WARNING: No handleNavigate function found${NC}"
+            echo "     Error pages should integrate with Inertia router"
+        fi
+    else
+        echo -e "  ${YELLOW}⚠️  $(basename $error_page) not found (skipping)${NC}"
+    fi
+done
+
+if [ $NAVIGATION_ISSUES -eq 0 ]; then
+    echo -e "${GREEN}✅ All error pages have proper navigation normalization${NC}"
+else
+    echo -e "${RED}❌ $NAVIGATION_ISSUES error page(s) missing navigation normalization${NC}"
+fi
+
+echo ""
+
+# ========================================================================
+# Part 4.7: E2E Test Environment Check (APP_DEBUG, Debugbar)
+# ========================================================================
+echo -e "${BLUE}📝 Part 4.7: E2E Test Environment Check${NC}"
+echo "------------------------------------------------------------------------"
+
+echo "Checking E2E test environment prerequisites..."
+
+# APP_DEBUG チェック（本番環境に近い状態でテストすべき）
+if [ -f "$PROJECT_ROOT/.env" ]; then
+    APP_DEBUG=$(grep "^APP_DEBUG=" "$PROJECT_ROOT/.env" | cut -d'=' -f2)
+
+    if [ "$APP_DEBUG" = "true" ]; then
+        echo -e "${YELLOW}⚠️  WARNING: APP_DEBUG=true (development mode)${NC}"
+        echo "   E2E tests may encounter DOM conflicts with debug elements"
+        echo "   Recommendation: Use APP_DEBUG=false for E2E testing"
+        echo ""
+        echo "   Workaround already applied:"
+        echo "   - E2E tests scope selectors to #app container"
+        echo "   - Example: page.locator('#app h2:has-text(...)')"
+    else
+        echo -e "${GREEN}✅ APP_DEBUG=false (production-like environment)${NC}"
+    fi
+fi
+
+# Laravel Debugbar インストールチェック
+if grep -q "barryvdh/laravel-debugbar" "$PROJECT_ROOT/composer.json" 2>/dev/null; then
+    echo -e "${YELLOW}⚠️  Laravel Debugbar is installed${NC}"
+    echo "   Debugbar can cause strict mode violations in E2E tests"
+    echo ""
+
+    # config/debugbar.php の enabled 設定確認
+    if [ -f "$PROJECT_ROOT/config/debugbar.php" ]; then
+        if grep -q "'enabled' => false" "$PROJECT_ROOT/config/debugbar.php" 2>/dev/null; then
+            echo -e "${GREEN}✅ Debugbar is disabled in config${NC}"
+        elif grep -q "'enabled' => env('DEBUGBAR_ENABLED'," "$PROJECT_ROOT/config/debugbar.php" 2>/dev/null; then
+            echo "   Debugbar enabled state: controlled by DEBUGBAR_ENABLED env variable"
+
+            if grep -q "^DEBUGBAR_ENABLED=false" "$PROJECT_ROOT/.env" 2>/dev/null; then
+                echo -e "${GREEN}✅ DEBUGBAR_ENABLED=false in .env${NC}"
+            else
+                echo -e "${YELLOW}⚠️  DEBUGBAR_ENABLED not set or true in .env${NC}"
+                echo "   Add to .env: DEBUGBAR_ENABLED=false"
+            fi
+        else
+            echo -e "${YELLOW}⚠️  Debugbar may be enabled${NC}"
+        fi
+    fi
+
+    echo ""
+    echo "   Best practice: Disable Debugbar for E2E tests"
+    echo "   1. Set DEBUGBAR_ENABLED=false in .env"
+    echo "   2. Or scope E2E selectors to #app container (already done)"
+else
+    echo -e "${GREEN}✅ Laravel Debugbar not installed${NC}"
+fi
+
+echo ""
+
+# ========================================================================
+# Part 4.8: ui-components Text Synchronization Check
+# ========================================================================
+echo -e "${BLUE}📝 Part 4.8: ui-components Text Synchronization Check${NC}"
+echo "------------------------------------------------------------------------"
+
+SYNC_SCRIPT="$SCRIPT_DIR/fix/sync-e2e-with-ui-components.sh"
+
+if [ -n "$SPEC_NAME" ]; then
+    echo "Checking E2E test text synchronization with ui-components..."
+
+    # sync スクリプトが存在するか確認
+    if [ ! -x "$SYNC_SCRIPT" ]; then
+        echo -e "${YELLOW}⚠️  sync-e2e-with-ui-components.sh not found or not executable${NC}"
+        echo "   Location: $SYNC_SCRIPT"
+    else
+        # dry-run モードで実行して、不一致があるかチェック
+        # (実際に修正はしない、検出のみ)
+        SYNC_OUTPUT=$("$SYNC_SCRIPT" "$SPEC_NAME" 2>&1 || true)
+
+        # "Fixed:" または "Mismatch" を含む出力があれば、不一致が検出された
+        if echo "$SYNC_OUTPUT" | grep -qE "(would fix|mismatch|inconsistency)" 2>/dev/null; then
+            echo -e "${RED}❌ CRITICAL: E2E test text does NOT match ui-components${NC}"
+            echo ""
+            echo "   Detected mismatches between:"
+            echo "   - E2E test expectations (tests/e2e/$SPEC_NAME/*.spec.ts)"
+            echo "   - ui-components actual text (dev-kit/ui-components/src/**/*.tsx)"
+            echo ""
+            echo "   This causes E2E test failures like:"
+            echo "   - locator('h2:has-text(\"期待テキスト\")').toBeVisible() → timeout"
+            echo ""
+            echo "   Fix: Run synchronization script:"
+            echo "   $SYNC_SCRIPT $SPEC_NAME"
+            echo ""
+            EXIT_CODE=1
+        else
+            # 既存の E2E テストファイルが存在するか確認
+            if [ -d "$PROJECT_ROOT/tests/e2e/$SPEC_NAME" ]; then
+                E2E_FILES=$(find "$PROJECT_ROOT/tests/e2e/$SPEC_NAME" -name "*.spec.ts" 2>/dev/null | wc -l | tr -d ' ')
+
+                if [ "$E2E_FILES" -gt 0 ]; then
+                    echo -e "${GREEN}✅ E2E test text synchronized with ui-components${NC}"
+                    echo "   Verified: $E2E_FILES E2E test file(s)"
+                else
+                    echo -e "${YELLOW}ℹ️  No E2E test files found (may not be implemented yet)${NC}"
+                fi
+            else
+                echo -e "${YELLOW}ℹ️  E2E tests not created yet for spec: $SPEC_NAME${NC}"
+            fi
+        fi
+    fi
+else
+    echo -e "${YELLOW}⚠️  No spec name provided, skipping text synchronization check${NC}"
+    echo "   Usage: $0 <spec-name>"
 fi
 
 echo ""
@@ -270,6 +524,280 @@ echo ""
 echo ""
 
 # ========================================================================
+# Part 7: 必須Props検証（TypeScript interface）
+# ========================================================================
+echo -e "${BLUE}📝 Part 7: Required Props Validation${NC}"
+echo "------------------------------------------------------------------------"
+
+echo "Checking critical props are required (not optional)..."
+
+CRITICAL_PROPS_OK=true
+
+# ui-components templates で必須化すべき critical handlers
+CRITICAL_HANDLERS=("onLogout" "onNavigate" "onSubmit")
+
+for handler in "${CRITICAL_HANDLERS[@]}"; do
+    # Template files where these handlers should be required
+    TEMPLATE_FILES=$(find "$PROJECT_ROOT/dev-kit/ui-components/src" -name "*.tsx" -type f 2>/dev/null)
+
+    if [ -n "$TEMPLATE_FILES" ]; then
+        for file in $TEMPLATE_FILES; do
+            # Check if handler is defined as optional (has ?)
+            if grep -qE "${handler}\?:\s*\(" "$file"; then
+                echo -e "${RED}❌ $(basename $file): ${handler} is optional (should be required)${NC}"
+                echo "   Found: ${handler}?: ..."
+                echo "   Expected: ${handler}: ..."
+                echo "   File: $file"
+                CRITICAL_PROPS_OK=false
+                EXIT_CODE=1
+            elif grep -qE "${handler}:\s*\(" "$file"; then
+                # Only report if it's actually in interface definition
+                if grep -B5 "interface.*Props" "$file" | grep -q "$handler"; then
+                    echo -e "${GREEN}✅ $(basename $file): ${handler} is required${NC}"
+                fi
+            fi
+        done
+    fi
+done
+
+if [ "$CRITICAL_PROPS_OK" = true ]; then
+    echo -e "${GREEN}✅ All critical props are correctly marked as required${NC}"
+else
+    echo -e "${RED}❌ Some critical props are incorrectly optional${NC}"
+    echo ""
+    echo "Fix: Remove '?' from handler props in interface definitions"
+    echo "Example: onLogout: () => void (not onLogout?: () => void)"
+fi
+
+echo ""
+
+# ========================================================================
+# Part 8: E2E Test Best Practices Check
+# ========================================================================
+echo -e "${BLUE}📝 Part 8: E2E Test Best Practices${NC}"
+echo "------------------------------------------------------------------------"
+
+if [ -d "$PROJECT_ROOT/tests/e2e" ]; then
+    echo "Checking E2E tests for common anti-patterns..."
+
+    E2E_TESTS=$(find "$PROJECT_ROOT/tests/e2e" -name "*.spec.ts" 2>/dev/null)
+
+    if [ -n "$E2E_TESTS" ]; then
+        DROPDOWN_ISSUES=0
+
+        for test in $E2E_TESTS; do
+            # ログアウトボタンを直接クリックしようとしている箇所を検出
+            if grep -q 'click.*ログアウト' "$test"; then
+                # その前にdropdownを開いているかチェック
+                TEST_CONTENT=$(cat "$test")
+                LOGOUT_LINE=$(grep -n 'click.*ログアウト' "$test" | head -1 | cut -d: -f1)
+
+                # ログアウトボタンクリック前の10行を確認
+                PRECEDING_LINES=$(sed -n "$((LOGOUT_LINE - 10)),$((LOGOUT_LINE - 1))p" "$test" 2>/dev/null || echo "")
+
+                if ! echo "$PRECEDING_LINES" | grep -q 'ユーザーメニュー'; then
+                    echo -e "${YELLOW}⚠️  POTENTIAL ISSUE: $(basename $test)${NC}"
+                    echo "   Line $LOGOUT_LINE: Clicking ログアウト button without opening dropdown first"
+                    echo "   Recommendation: Open user menu dropdown before clicking logout"
+                    echo ""
+                    echo "   Example fix:"
+                    echo "   await page.click('button[aria-label=\"ユーザーメニュー\"]');"
+                    echo "   await page.click('button:has-text(\"ログアウト\")');"
+                    DROPDOWN_ISSUES=$((DROPDOWN_ISSUES + 1))
+                fi
+            fi
+
+            # 一般的な hidden element クリック問題を検出
+            # waitForSelector や waitForLoadState なしで直接クリックしているケースを検出
+            if grep -q "\.click(" "$test"; then
+                CLICK_LINES=$(grep -n "\.click(" "$test" | cut -d: -f1)
+                for line_num in $CLICK_LINES; do
+                    # その前5行にwaitForSelectorやwaitForLoadStateがあるかチェック
+                    PRECEDING_5=$(sed -n "$((line_num - 5)),$((line_num - 1))p" "$test" 2>/dev/null || echo "")
+                    CLICK_LINE_CONTENT=$(sed -n "${line_num}p" "$test")
+
+                    # ドロップダウンメニュー関連のクリック（display: noneになっている要素）を検出
+                    if echo "$CLICK_LINE_CONTENT" | grep -qE "(ログアウト|メニュー|dropdown)"; then
+                        if ! echo "$PRECEDING_5" | grep -qE "(waitForSelector|waitForLoadState|aria-label)"; then
+                            echo -e "${YELLOW}⚠️  POTENTIAL ISSUE: $(basename $test):${line_num}${NC}"
+                            echo "   Clicking on potentially hidden element without explicit wait"
+                            echo "   Content: $(echo "$CLICK_LINE_CONTENT" | xargs)"
+                            DROPDOWN_ISSUES=$((DROPDOWN_ISSUES + 1))
+                        fi
+                    fi
+                done
+            fi
+        done
+
+        if [ $DROPDOWN_ISSUES -eq 0 ]; then
+            echo -e "${GREEN}✅ No E2E test anti-patterns detected${NC}"
+        else
+            echo -e "${YELLOW}⚠️  Found $DROPDOWN_ISSUES potential E2E test issue(s)${NC}"
+            echo "   These are warnings, not failures. Review recommended."
+        fi
+    else
+        echo -e "${YELLOW}⚠️  No E2E test files found${NC}"
+    fi
+else
+    echo -e "${YELLOW}⚠️  tests/e2e directory not found${NC}"
+fi
+
+echo ""
+
+# ========================================================================
+# Part 9: Implementation Checklist Validation
+# ========================================================================
+echo -e "${BLUE}📝 Part 9: Implementation Checklist Validation${NC}"
+echo "------------------------------------------------------------------------"
+
+if [ -n "$SPEC_NAME" ]; then
+    echo "Running implementation checks for spec: $SPEC_NAME"
+    echo ""
+
+    # 9.1: config/auth.php モデルクラス確認
+    echo -e "${BLUE}9.1: config/auth.php Model Class Configuration${NC}"
+    if [ ! -f "$PROJECT_ROOT/config/auth.php" ]; then
+        echo -e "  ${RED}❌ config/auth.php not found${NC}"
+        EXIT_CODE=1
+    else
+        # Eloquent モデルクラス指定を確認
+        if grep -q "'model' => App\\\\Modules\\\\" "$PROJECT_ROOT/config/auth.php"; then
+            echo -e "  ${GREEN}✅ Custom model class configured (Clean Architecture)${NC}"
+        elif grep -q "'model' => App\\\\Models\\\\User::class" "$PROJECT_ROOT/config/auth.php"; then
+            echo -e "  ${YELLOW}⚠️  Default App\\Models\\User configured (verify if Clean Architecture required)${NC}"
+        else
+            echo -e "  ${RED}❌ Model class configuration not found${NC}"
+            EXIT_CODE=1
+        fi
+    fi
+    echo ""
+
+    # 9.2: routes/web.php middleware設定
+    echo -e "${BLUE}9.2: routes/web.php Middleware Configuration${NC}"
+    if [ ! -f "$PROJECT_ROOT/routes/web.php" ]; then
+        echo -e "  ${RED}❌ routes/web.php not found${NC}"
+        EXIT_CODE=1
+    else
+        # ログインルートにguest middleware
+        if grep -A 3 "Route::get('/login'" "$PROJECT_ROOT/routes/web.php" | grep -q "middleware('guest')"; then
+            echo -e "  ${GREEN}✅ GET /login has guest middleware${NC}"
+        else
+            echo -e "  ${RED}❌ GET /login missing guest middleware${NC}"
+            EXIT_CODE=1
+        fi
+
+        # POST /login ルートにguest middleware
+        if grep -A 3 "Route::post('/login'" "$PROJECT_ROOT/routes/web.php" | grep -q "middleware('guest')"; then
+            echo -e "  ${GREEN}✅ POST /login has guest middleware${NC}"
+        else
+            echo -e "  ${RED}❌ POST /login missing guest middleware${NC}"
+            EXIT_CODE=1
+        fi
+
+        # ダッシュボードルートにauth middleware
+        if grep -A 3 "Route::get('/dashboard'" "$PROJECT_ROOT/routes/web.php" | grep -q "middleware('auth')"; then
+            echo -e "  ${GREEN}✅ GET /dashboard has auth middleware${NC}"
+        else
+            echo -e "  ${RED}❌ GET /dashboard missing auth middleware${NC}"
+            EXIT_CODE=1
+        fi
+    fi
+    echo ""
+
+    # 9.3: Inertia props 確認
+    echo -e "${BLUE}9.3: Inertia Props Usage Check${NC}"
+    CONTROLLER_FILES=$(find "$PROJECT_ROOT/app/Modules" -name "*Controller.php" 2>/dev/null || echo "")
+
+    if [ -z "$CONTROLLER_FILES" ]; then
+        echo -e "  ${YELLOW}⚠️  No Controller files found (skipping)${NC}"
+    else
+        INERTIA_RENDER_COUNT=$(echo "$CONTROLLER_FILES" | xargs grep -l "Inertia::render" 2>/dev/null | wc -l | tr -d ' ')
+
+        if [ "$INERTIA_RENDER_COUNT" -gt 0 ]; then
+            echo -e "  ${GREEN}✅ Found $INERTIA_RENDER_COUNT Controller(s) using Inertia::render${NC}"
+
+            # 配列形式で props を渡しているか確認
+            PROPER_PROPS=$(echo "$CONTROLLER_FILES" | xargs grep -A 5 "Inertia::render" 2>/dev/null | grep -c "\[" 2>/dev/null || echo "0")
+            PROPER_PROPS=$(echo "$PROPER_PROPS" | head -1 | tr -d '\n')
+
+            if [ "$PROPER_PROPS" -gt 0 ] 2>/dev/null; then
+                echo -e "  ${GREEN}✅ Props passed as array format${NC}"
+            else
+                echo -e "  ${YELLOW}⚠️  Review props passing format${NC}"
+            fi
+        else
+            echo -e "  ${YELLOW}⚠️  No Inertia::render usage found${NC}"
+        fi
+    fi
+    echo ""
+
+    # 9.4: E2E Prerequisites 実装確認
+    echo -e "${BLUE}9.4: E2E Test Prerequisites Implementation${NC}"
+    E2E_YAML="$PROJECT_ROOT/dev-kit/docs/specs/$SPEC_NAME/tests/e2e.yaml"
+
+    if [ ! -f "$E2E_YAML" ]; then
+        echo -e "  ${YELLOW}⚠️  e2e.yaml not found (skipping)${NC}"
+    else
+        # prerequisitesセクションの有無を確認
+        if grep -q "prerequisites:" "$E2E_YAML"; then
+            echo -e "  ${GREEN}✅ Prerequisites defined in e2e.yaml${NC}"
+
+            # authentication type の prerequisite
+            if grep -A 5 "prerequisites:" "$E2E_YAML" | grep -q "type: authentication"; then
+                echo -e "  ${GREEN}✅ Authentication prerequisite found${NC}"
+
+                # 対応するヘルパー関数が存在するか確認
+                HELPER_EXISTS=$(find "$PROJECT_ROOT/tests/e2e" -name "*helper*.ts" -o -name "*utils*.ts" 2>/dev/null | xargs grep -l "login" 2>/dev/null || echo "")
+
+                if [ -n "$HELPER_EXISTS" ]; then
+                    echo -e "  ${GREEN}✅ Login helper function implemented${NC}"
+                else
+                    echo -e "  ${RED}❌ Login helper function not found${NC}"
+                    echo -e "     ${YELLOW}Implement loginAsTestUser() helper for E2E tests${NC}"
+                    EXIT_CODE=1
+                fi
+            fi
+        else
+            echo -e "  ${YELLOW}ℹ️  No prerequisites defined${NC}"
+        fi
+    fi
+    echo ""
+
+    # 9.5: Laravel キャッシュディレクトリ確認
+    echo -e "${BLUE}9.5: Laravel Cache Directories Check${NC}"
+    CACHE_DIRS=(
+        "bootstrap/cache"
+        "storage/framework/cache"
+        "storage/framework/views"
+    )
+
+    CACHE_ISSUES=0
+
+    for dir in "${CACHE_DIRS[@]}"; do
+        if [ ! -d "$PROJECT_ROOT/$dir" ]; then
+            echo -e "  ${YELLOW}⚠️  $dir not found${NC}"
+            ((CACHE_ISSUES++))
+        fi
+    done
+
+    if [ "$CACHE_ISSUES" -eq 0 ]; then
+        echo -e "  ${GREEN}✅ All cache directories exist${NC}"
+        echo ""
+        echo -e "  ${YELLOW}💡 To clear cache if needed:${NC}"
+        echo "     ./vendor/bin/sail artisan config:clear"
+        echo "     ./vendor/bin/sail artisan cache:clear"
+        echo "     ./vendor/bin/sail artisan view:clear"
+    else
+        echo -e "  ${YELLOW}⚠️  Some cache directories missing${NC}"
+    fi
+else
+    echo -e "${YELLOW}⚠️  No spec name provided, skipping implementation checks${NC}"
+    echo "   Usage: $0 <spec-name>"
+fi
+
+echo ""
+
+# ========================================================================
 # 最終サマリー
 # ========================================================================
 echo "========================================================================"
@@ -289,6 +817,7 @@ if [ $EXIT_CODE -eq 0 ]; then
     echo "  ✅ ui-components templates used"
     echo "  ✅ No forbidden patterns (custom components, Tailwind, direct HTML)"
     echo "  ✅ TypeScript syntax valid"
+    echo "  ✅ Implementation checklist validated (config, routes, props, E2E prerequisites)"
     echo ""
 else
     echo -e "${RED}❌❌❌ FRONTEND VALIDATION FAILED ❌❌❌${NC}"

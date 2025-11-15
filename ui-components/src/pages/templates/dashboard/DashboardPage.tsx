@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import InfoPageWrapper, { SidebarMenuItem } from '../../../components/layout/InfoPageWrapper';
-import TemplateNavigation from '../../../components/navigation/TemplateNavigation';
 import Icon from '../../../components/icons/Icon';
 import { useViewMode } from '../../../hooks/useViewMode';
 import type { IconName } from '../../../components/icons/Icon';
@@ -329,7 +328,6 @@ export interface DashboardPageProps {
   title?: string;
 
   currentPage?: string;
-  hideNavigation?: boolean;
 
   /**
    * サイドバーメニューアイテム（動的設定可能）
@@ -356,8 +354,8 @@ export interface DashboardPageProps {
    */
   sidebarMenuItems?: SidebarMenuItem[];
 
-  onNavigate?: (page: string) => void;
-  onLogout?: () => void;
+  onNavigate: (page: string) => void;
+  onLogout: () => void;
   onMarkNotificationAsRead?: (notificationId: string | number) => void;
   onMarkAllNotificationsAsRead?: () => void;
 }
@@ -495,7 +493,6 @@ export interface DashboardPageProps {
 const DashboardPage: React.FC<DashboardPageProps> = ({
   userName = 'ゲスト',
   stats = [],
-  hideNavigation = true,
   recentActivities = [],
   quickActions = [],
   notifications = [],
@@ -591,13 +588,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
    * ```
    */
   const handleLogout = () => {
-    if (onLogout) {
-      onLogout();
-      return;
-    }
-
-    // Fallback: Navigate to login page
-    handleNavigate('login');
+    onLogout();
   };
 
   /**
@@ -659,11 +650,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
 
   return (
     <div className={viewMode === 'sp' ? 'force-mobile' : ''}>
-      <TemplateNavigation
-        hide={hideNavigation}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      />
       <InfoPageWrapper
         viewMode={viewMode}
         currentPage={currentPage}
@@ -743,6 +729,19 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             </span>
           </div>
         )}
+
+        {/* ページタイトル */}
+        <h1
+          style={{
+            fontSize: 'var(--font-size-2xl)',
+            fontWeight: 'var(--font-weight-bold)',
+            color: 'var(--color-neutral-900)',
+            marginBottom: 'var(--spacing-4)',
+            marginTop: flashMessage ? 'var(--spacing-4)' : '0',
+          }}
+        >
+          {title}
+        </h1>
 
         {/* デフォルト表示: コンテンツが何もない場合は何も表示しない（フラッシュメッセージのみ） */}
         {stats.length === 0 && recentActivities.length === 0 && quickActions.length === 0 ? null : (

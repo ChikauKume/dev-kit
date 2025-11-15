@@ -1,5 +1,4 @@
 import React, { useState, useRef } from 'react';
-import TemplateNavigation from '../../../components/navigation/TemplateNavigation';
 import InfoPageWrapper from '../../../components/layout/InfoPageWrapper';
 import { useViewMode } from '../../../hooks/useViewMode';
 
@@ -19,7 +18,7 @@ import { useViewMode } from '../../../hooks/useViewMode';
  */
 interface TermsPageProps {
   hideNavigation?: boolean;
-  onNavigate?: (page: string) => void;
+  onNavigate: (page: string) => void;
   /**
    * Callback for logout action
    *
@@ -28,7 +27,7 @@ interface TermsPageProps {
    * onLogout={() => router.post('/logout')}
    * ```
    */
-  onLogout?: () => void;
+  onLogout: () => void;
 }
 
 const TermsPage: React.FC<TermsPageProps> = ({ hideNavigation, onNavigate, onLogout }) => {
@@ -102,11 +101,6 @@ const TermsPage: React.FC<TermsPageProps> = ({ hideNavigation, onNavigate, onLog
 
   return (
     <div className={viewMode === 'sp' ? 'force-mobile' : ''}>
-      <TemplateNavigation
-        hide={hideNavigation}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      />
       <InfoPageWrapper
         viewMode={viewMode}
         currentPage="terms"

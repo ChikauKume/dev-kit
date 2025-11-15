@@ -1,5 +1,4 @@
 import React from 'react';
-import TemplateNavigation from '../../../components/navigation/TemplateNavigation';
 import { useViewMode } from '../../../hooks/useViewMode';
 
 /**
@@ -16,7 +15,7 @@ import { useViewMode } from '../../../hooks/useViewMode';
  * ]);
  */
 interface Error500PageProps {
-  onNavigate?: (page: string) => void;
+  onNavigate: (page: string) => void;
   hideNavigation?: boolean;
 }
 
@@ -37,11 +36,6 @@ const Error500Page: React.FC<Error500PageProps> = ({ onNavigate, hideNavigation 
 
   return (
     <div className={viewMode === 'sp' ? 'force-mobile' : ''}>
-      <TemplateNavigation
-        hide={hideNavigation}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      />
       <div className="login-screen">
         <div className="login-card" style={{ maxWidth: '500px' }}>
         <div style={{ marginBottom: 'var(--spacing-6)' }}>

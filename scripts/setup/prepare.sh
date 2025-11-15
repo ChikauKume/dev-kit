@@ -5,7 +5,6 @@
 # ============================================
 # 1. 前提条件チェック（ファイル存在確認）
 # 2. Laravel Sail起動
-# 3. ワークフロー状態初期化
 # ============================================
 
 set -e
@@ -69,11 +68,8 @@ echo ""
 echo "📄 design.md:"
 cat "dev-kit/docs/specs/${SPEC_NAME}/design.md" | head -50
 echo ""
-echo "📄 phpunit.yaml:"
-cat "dev-kit/docs/specs/${SPEC_NAME}/tests/phpunit.yaml" | head -30
-echo ""
-echo "📄 e2e.yaml:"
-cat "dev-kit/docs/specs/${SPEC_NAME}/tests/e2e.yaml" | head -30
+echo "📄 tasks.yaml:"
+cat "dev-kit/docs/specs/${SPEC_NAME}/tasks.yaml" | head -50
 echo ""
 
 # ステップ4: 初期設定（初回のみ実行推奨）
@@ -127,17 +123,6 @@ fi
 
 echo ""
 
-# ステップ6: ワークフロー状態初期化
-echo "▶ ステップ6: ワークフロー状態初期化"
-echo ""
-./dev-kit/scripts/workflow/state.sh init "${SPEC_NAME}"
-if [ $? -ne 0 ]; then
-  echo ""
-  echo "❌ 準備失敗: ワークフロー状態の初期化に失敗しました"
-  exit 1
-fi
-echo ""
-
 # 完了メッセージ
 echo "╔════════════════════════════════════════════════════╗"
 echo "║  ✅ ワークフロー準備完了"
@@ -151,12 +136,10 @@ echo "  ✅ 仕様書確認"
 echo "  ✅ 初期設定"
 echo "  ✅ 環境検証"
 echo "  ✅ HTML出力ポート準備"
-echo "  ✅ ワークフロー状態初期化"
 echo ""
-echo "📹 証拠保存先: test-reports/${SPEC_NAME}/"
-echo "   各機能のTDDサイクル完了時に動画が保存されます"
+echo "📹 証拠保存先: playwright-report/"
+echo "   E2Eテスト実行後にHTMLレポートが生成されます"
 echo ""
-echo "➡️  次のステップ: npm run workflow:step1 ${SPEC_NAME}"
-echo "    （ステップ1: スケルトン生成）"
+echo "➡️  次のステップ: npm run task:status ${SPEC_NAME}"
+echo "    （タスク進捗確認）"
 echo ""
-echo "📊 状態確認: npm run workflow:status ${SPEC_NAME}"

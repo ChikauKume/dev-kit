@@ -1,0 +1,24 @@
+# ワークフロー状態ファイル: login
+# 自動生成日時: 2025-11-11T01:12:44Z
+
+spec_name: login
+current_step: 2
+retry_count: 0
+total_retries: 0
+status: in_progress
+started_at: "2025-11-11T01:12:44Z"
+last_updated: "2025-11-11T01:14:26Z"
+last_error: null
+
+# ステップ履歴
+history:
+  - step: 1
+    status: completed
+    duration: 1
+    completed_at: "2025-11-11T01:13:52Z"
+
+# フラグ
+flags:
+  escalated: false
+  paused: false
+  completed: false

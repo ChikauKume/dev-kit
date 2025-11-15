@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
 import InfoPageWrapper from '../../../components/layout/InfoPageWrapper';
-import TemplateNavigation from '../../../components/navigation/TemplateNavigation';
 import Button from '../../../components/buttons/Button';
 import InputField from '../../../components/forms/InputField';
 import Icon from '../../../components/icons/Icon';
@@ -190,7 +189,7 @@ export interface SettingsPageProps {
    * onNavigate={(page) => router.visit(`/${page}`)}
    * ```
    */
-  onNavigate?: (page: string) => void;
+  onNavigate: (page: string) => void;
 
   /**
    * Callback for logout action
@@ -200,7 +199,7 @@ export interface SettingsPageProps {
    * onLogout={() => router.post('/logout')}
    * ```
    */
-  onLogout?: () => void;
+  onLogout: () => void;
 
   /**
    * Callback to mark a single notification as read
@@ -495,11 +494,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
 
   return (
     <div className={viewMode === 'sp' ? 'force-mobile' : ''}>
-      <TemplateNavigation
-        hide={hideNavigation}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      />
       <InfoPageWrapper
         viewMode={viewMode}
         currentPage={currentPage}

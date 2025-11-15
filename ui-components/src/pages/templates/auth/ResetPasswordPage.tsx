@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import Icon from '../../../components/icons/Icon';
 import InputField from '../../../components/forms/InputField';
-import TemplateNavigation from '../../../components/navigation/TemplateNavigation';
 import { useViewMode } from '../../../hooks/useViewMode';
 import { BaseAuthPageProps } from '../../../types/inertia';
 
@@ -67,7 +66,7 @@ interface ResetPasswordPageProps extends BaseAuthPageProps {
   onConfirmPasswordChange?: (value: string) => void;
   onNewPasswordBlur?: (value: string) => void;
   onConfirmPasswordBlur?: (value: string) => void;
-  onSubmit?: (e: React.FormEvent<HTMLFormElement>) => void;
+  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
 }
 
 const ResetPasswordPage: React.FC<ResetPasswordPageProps> = (props) => {
@@ -181,11 +180,6 @@ const ResetPasswordPage: React.FC<ResetPasswordPageProps> = (props) => {
 
   return (
     <div className={viewMode === 'sp' ? 'force-mobile' : ''}>
-      <TemplateNavigation
-        hide={props.hideNavigation}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      />
       <div className="login-screen">
         <div className="login-card">
           <h1 className="login-title">新しいパスワード設定</h1>

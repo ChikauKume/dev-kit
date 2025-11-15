@@ -1,6 +1,5 @@
 import React from 'react';
 import Icon from '../../../components/icons/Icon';
-import TemplateNavigation from '../../../components/navigation/TemplateNavigation';
 import { useViewMode } from '../../../hooks/useViewMode';
 import { BaseAuthPageProps } from '../../../types/inertia';
 
@@ -61,11 +60,6 @@ const SignupCompletePage: React.FC<SignupCompletePageProps> = (props) => {
 
   return (
     <div className={viewMode === 'sp' ? 'force-mobile' : ''}>
-      <TemplateNavigation
-        hide={props.hideNavigation}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      />
       <div className="login-screen">
         <div className="login-card">
           <div style={{ textAlign: 'center', marginBottom: 'var(--spacing-6)' }}>

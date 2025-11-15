@@ -19,11 +19,10 @@ export default defineConfig({
   // タイムアウト設定
   timeout: 60 * 1000, // 60秒
 
-  // レポーター（TODO: E2Eテスト完成後に詳細レポート設定を検討）
+  // レポーター（HTMLレポートに動画が自動的に含まれます）
   reporter: [
-    ['list'], // シンプルなコンソール出力のみ
-    // ['html', { outputFolder: 'docs/test-reports/playwright-html', open: 'never' }],
-    // ['json', { outputFile: 'docs/test-reports/playwright-results.json' }],
+    ['list'], // コンソール出力
+    ['html', { open: 'never' }], // HTMLレポート（playwright-report/ に出力、動画含む）
   ],
 
   // すべてのテストで共通の設定

@@ -6,7 +6,7 @@ interface AuthenticatedLayoutProps {
   viewMode: 'pc' | 'sp';
   currentPage: string;
   onNavigate: (page: string) => void;
-  onLogout?: () => void;
+  onLogout: () => void;
   unreadCount?: number;
   onUnreadCountChange?: (count: number) => void;
 }
@@ -126,7 +126,7 @@ const AuthenticatedLayout: React.FC<AuthenticatedLayoutProps> = ({
                     <Icon name="cog" className="w-4 h-4" style={{ color: 'white', marginRight: '8px' }} />
                     設定
                   </div>
-                  <div className="sp-hamburger-item" onClick={() => { setIsHamburgerOpen(false); onLogout ? onLogout() : onNavigate('login'); }}>
+                  <div className="sp-hamburger-item" onClick={() => { setIsHamburgerOpen(false); onLogout(); }}>
                     <Icon name="arrow-right" className="w-4 h-4" style={{ color: 'white', marginRight: '8px' }} />
                     ログアウト
                   </div>
@@ -269,7 +269,7 @@ const AuthenticatedLayout: React.FC<AuthenticatedLayoutProps> = ({
                     className="user-dropdown-item"
                     onClick={() => {
                       setShowUserMenu(false);
-                      onLogout ? onLogout() : onNavigate('login');
+                      onLogout();
                     }}
                   >
                     <Icon name="arrow-right" className="w-4 h-4" />

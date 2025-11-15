@@ -32,6 +32,7 @@ Red → Green → Refactor → QA
 | ファイル | エージェント | フェーズ | ステップ | TDD Stage | 説明 |
 |---------|-------------|---------|---------|-----------|------|
 | `backend-test-manager.md` | backend-test-manager | 1-2 | 1-2 | Red | テスト生成・Red状態確認 |
+| `frontend-test-manager.md` | frontend-test-manager | 2-3 | 3 | Red/Green | フロントエンドE2Eテスト実装・管理 |
 | `frontend-developer.md` | frontend-developer | 2 | 3 | Green | フロントエンド実装 |
 | `backend-developer.md` | backend-developer | 2 | 4 | Green | バックエンド実装 |
 | `backend-e2e-tester.md` | backend-e2e-tester | 3 | 5 | Green | バックエンド→ブラウザ連携確認 |

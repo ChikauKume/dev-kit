@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import Icon from '../../../components/icons/Icon';
 import InputField from '../../../components/forms/InputField';
-import TemplateNavigation from '../../../components/navigation/TemplateNavigation';
 import { useViewMode } from '../../../hooks/useViewMode';
 import { BaseAuthPageProps } from '../../../types/inertia';
 
@@ -57,8 +56,8 @@ interface ForgotPasswordPageProps extends BaseAuthPageProps {
   resetEmailSuccess?: boolean;
   onResetEmailChange?: (value: string) => void;
   onResetEmailBlur?: (value: string) => void;
-  onSubmit?: (e: React.FormEvent<HTMLFormElement>) => void;
-  onNavigateToLogin?: () => void;
+  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  onNavigateToLogin: () => void;
 }
 
 const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = (props) => {
@@ -145,11 +144,6 @@ const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = (props) => {
 
   return (
     <div className={viewMode === 'sp' ? 'force-mobile' : ''}>
-      <TemplateNavigation
-        hide={props.hideNavigation}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      />
       <div className="login-screen">
         <div className="login-card">
           <h1 className="login-title">パスワード再設定</h1>
